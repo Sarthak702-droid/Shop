@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 300" width="1280" height="300" role="img" aria-label="Shop pipeline: source, 5 Hz sampling, person detection, tracking, descriptive policy, evidence clip, human review.">
+<style>
+  .f { font-family: Inter, "Segoe UI", Helvetica, Arial, sans-serif; }
+  .mono { font-family: "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace; }
+  .flow { animation: flow 1s linear infinite; }
+  @keyframes flow { to { stroke-dashoffset: -11 } }
+  .glow { opacity: 0; animation: glow 7.0s ease-in-out infinite; }
+  @keyframes glow { 0% { opacity: 0 } 4% { opacity: 1 } 16% { opacity: 0 } 100% { opacity: 0 } }
+  .o { opacity: 0; animation: cyc 9s infinite; }
+  .o2 { animation-delay: 3s } .o3 { animation-delay: 6s }
+  @keyframes cyc { 0% { opacity: 0; transform: translateY(6px) } 5%,30% { opacity: 1; transform: none } 35%,100% { opacity: 0 } }
+  @media (prefers-reduced-motion: reduce) { .flow,.glow { animation: none !important } .o { animation: none !important; opacity: 0 } .o1 { opacity: 1 } }
+</style>
+<rect width="1280" height="300" rx="22" fill="#F5F7F8"/>
+<text class="f" x="40" y="52" font-size="14" font-weight="700" fill="#087F78" letter-spacing="1.6">HOW A FRAME BECOMES A REVIEWABLE SEGMENT</text>
+<text class="f" x="1240" y="52" text-anchor="end" font-size="13" fill="#536572">Worker process · no inference in HTTP handlers</text>
+<g class="node" style="animation-delay:0.00s">
+  <rect x="40.0" y="92" width="148" height="112" rx="16" fill="#fff" stroke="#DCE4E8" stroke-width="1.5"/>
+  <rect class="glow" style="animation-delay:0.00s" x="37.0" y="89" width="154" height="118" rx="19" fill="none" stroke="#2BC4B8" stroke-width="3"/>
+  <rect x="56.0" y="108" width="48" height="24" rx="7" fill="#E6F4F1"/>
+  <text class="f mono" x="65.0" y="125" font-size="12.5" font-weight="700" fill="#087F78">SRC</text>
+  <text class="f" x="56.0" y="162" font-size="17" font-weight="700" fill="#142B3B">Source</text>
+  <text class="f" x="56.0" y="184" font-size="13" fill="#536572">File or webcam</text>
+</g><path class="flow" d="M192.0 148.0 H205.3" stroke="#087F78" stroke-width="2.5" stroke-dasharray="5 6" fill="none"/><path d="M203.3 143.0 L211.3 148.0 L203.3 153.0" fill="none" stroke="#087F78" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><g class="node" style="animation-delay:1.00s">
+  <rect x="215.3" y="92" width="148" height="112" rx="16" fill="#fff" stroke="#DCE4E8" stroke-width="1.5"/>
+  <rect class="glow" style="animation-delay:1.00s" x="212.3" y="89" width="154" height="118" rx="19" fill="none" stroke="#2BC4B8" stroke-width="3"/>
+  <rect x="231.3" y="108" width="48" height="24" rx="7" fill="#E6F4F1"/>
+  <text class="f mono" x="240.3" y="125" font-size="12.5" font-weight="700" fill="#087F78">5Hz</text>
+  <text class="f" x="231.3" y="162" font-size="17" font-weight="700" fill="#142B3B">Sample</text>
+  <text class="f" x="231.3" y="184" font-size="13" fill="#536572">5 Hz cadence</text>
+</g><path class="flow" d="M367.3 148.0 H380.7" stroke="#087F78" stroke-width="2.5" stroke-dasharray="5 6" fill="none"/><path d="M378.7 143.0 L386.7 148.0 L378.7 153.0" fill="none" stroke="#087F78" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><g class="node" style="animation-delay:2.00s">
+  <rect x="390.7" y="92" width="148" height="112" rx="16" fill="#fff" stroke="#DCE4E8" stroke-width="1.5"/>
+  <rect class="glow" style="animation-delay:2.00s" x="387.7" y="89" width="154" height="118" rx="19" fill="none" stroke="#2BC4B8" stroke-width="3"/>
+  <rect x="406.7" y="108" width="48" height="24" rx="7" fill="#E6F4F1"/>
+  <text class="f mono" x="415.7" y="125" font-size="12.5" font-weight="700" fill="#087F78">DET</text>
+  <text class="f" x="406.7" y="162" font-size="17" font-weight="700" fill="#142B3B">Detect</text>
+  <text class="f" x="406.7" y="184" font-size="13" fill="#536572">Person · CPU</text>
+</g><path class="flow" d="M542.7 148.0 H556.0" stroke="#087F78" stroke-width="2.5" stroke-dasharray="5 6" fill="none"/><path d="M554.0 143.0 L562.0 148.0 L554.0 153.0" fill="none" stroke="#087F78" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><g class="node" style="animation-delay:3.00s">
+  <rect x="566.0" y="92" width="148" height="112" rx="16" fill="#fff" stroke="#DCE4E8" stroke-width="1.5"/>
+  <rect class="glow" style="animation-delay:3.00s" x="563.0" y="89" width="154" height="118" rx="19" fill="none" stroke="#2BC4B8" stroke-width="3"/>
+  <rect x="582.0" y="108" width="48" height="24" rx="7" fill="#E6F4F1"/>
+  <text class="f mono" x="591.0" y="125" font-size="12.5" font-weight="700" fill="#087F78">TRK</text>
+  <text class="f" x="582.0" y="162" font-size="17" font-weight="700" fill="#142B3B">Track</text>
+  <text class="f" x="582.0" y="184" font-size="13" fill="#536572">Kalman + Hungarian</text>
+</g><path class="flow" d="M718.0 148.0 H731.3" stroke="#087F78" stroke-width="2.5" stroke-dasharray="5 6" fill="none"/><path d="M729.3 143.0 L737.3 148.0 L729.3 153.0" fill="none" stroke="#087F78" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><g class="node" style="animation-delay:4.00s">
+  <rect x="741.3" y="92" width="148" height="112" rx="16" fill="#fff" stroke="#DCE4E8" stroke-width="1.5"/>
+  <rect class="glow" style="animation-delay:4.00s" x="738.3" y="89" width="154" height="118" rx="19" fill="none" stroke="#2BC4B8" stroke-width="3"/>
+  <rect x="757.3" y="108" width="48" height="24" rx="7" fill="#E6F4F1"/>
+  <text class="f mono" x="766.3" y="125" font-size="12.5" font-weight="700" fill="#087F78">POL</text>
+  <text class="f" x="757.3" y="162" font-size="17" font-weight="700" fill="#142B3B">Describe</text>
+  <text class="f" x="757.3" y="184" font-size="13" fill="#536572">Policy, no verdict</text>
+</g><path class="flow" d="M893.3 148.0 H906.7" stroke="#087F78" stroke-width="2.5" stroke-dasharray="5 6" fill="none"/><path d="M904.7 143.0 L912.7 148.0 L904.7 153.0" fill="none" stroke="#087F78" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><g class="node" style="animation-delay:5.00s">
+  <rect x="916.7" y="92" width="148" height="112" rx="16" fill="#fff" stroke="#DCE4E8" stroke-width="1.5"/>
+  <rect class="glow" style="animation-delay:5.00s" x="913.7" y="89" width="154" height="118" rx="19" fill="none" stroke="#2BC4B8" stroke-width="3"/>
+  <rect x="932.7" y="108" width="48" height="24" rx="7" fill="#E6F4F1"/>
+  <text class="f mono" x="941.7" y="125" font-size="12.5" font-weight="700" fill="#087F78">EVD</text>
+  <text class="f" x="932.7" y="162" font-size="17" font-weight="700" fill="#142B3B">Evidence</text>
+  <text class="f" x="932.7" y="184" font-size="13" fill="#536572">WebM + SHA-256</text>
+</g><path class="flow" d="M1068.7 148.0 H1082.0" stroke="#087F78" stroke-width="2.5" stroke-dasharray="5 6" fill="none"/><path d="M1080.0 143.0 L1088.0 148.0 L1080.0 153.0" fill="none" stroke="#087F78" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><g class="node" style="animation-delay:6.00s">
+  <rect x="1092.0" y="92" width="148" height="112" rx="16" fill="#087F78" stroke="#087F78" stroke-width="1.5"/>
+  <rect class="glow" style="animation-delay:6.00s" x="1089.0" y="89" width="154" height="118" rx="19" fill="none" stroke="#2BC4B8" stroke-width="3"/>
+  <rect x="1108.0" y="108" width="48" height="24" rx="7" fill="#0B9A91"/>
+  <text class="f mono" x="1117.0" y="125" font-size="12.5" font-weight="700" fill="#fff">YOU</text>
+  <text class="f" x="1108.0" y="162" font-size="17" font-weight="700" fill="#fff">Human review</text>
+  <text class="f" x="1108.0" y="184" font-size="13" fill="#E6F4F1">Append-only</text>
+</g>
+<circle r="6" fill="#2BC4B8"><animateMotion dur="7.0s" repeatCount="indefinite" path="M114.0 226 H1166.0"/></circle>
+<path d="M114.0 226 H1166.0" stroke="#DCE4E8" stroke-width="2" fill="none" opacity=".9"/>
+<g class="f" font-size="13" font-weight="700">
+  <g class="o o1"><rect x="1032.0" y="244" width="208" height="30" rx="15" fill="#E6F4F1"/><text x="1136.0" y="264" text-anchor="middle" fill="#087F78">benign</text></g>
+  <g class="o o2"><rect x="1032.0" y="244" width="208" height="30" rx="15" fill="#FFF4DE"/><text x="1136.0" y="264" text-anchor="middle" fill="#A65D08">review_needed</text></g>
+  <g class="o o3"><rect x="1032.0" y="244" width="208" height="30" rx="15" fill="#EEF2F4"/><text x="1136.0" y="264" text-anchor="middle" fill="#536572">inconclusive</text></g>
+</g>
+<text class="f" x="40" y="264" font-size="13" fill="#536572">review_score stays <tspan class="mono" fill="#142B3B">null</tspan> until a calibrated model exists, and is never shown as zero risk.</text>
+</svg>

@@ -23,7 +23,7 @@ Provenance labels: `[Publisher metadata]`, `[Proposed target]`, `[Illustrative a
 | API | Delivered baseline | `/api/v1`, strict schemas, request IDs, safe errors, auth option, idempotency, ETag, media, reviews, audit, retention |
 | Review UI | Delivered | React/TypeScript/Vite, Shop tokens, responsive desktop/narrow, all page states, null-score presentation |
 | Reviews | Delivered | Append-only benign/review_needed/inconclusive outcomes, reason codes, correction history |
-| Tests | Delivered | 84 backend, 54 frontend, production build, browser checks `[Actual measured result]` |
+| Tests | Delivered | 84 backend, 56 frontend, production build, browser checks `[Actual measured result]` |
 | Documentation | Delivered | README, architecture, API, models, data, evaluation, runbook, this status |
 
 ## Phase status
@@ -100,8 +100,8 @@ Provenance labels: `[Publisher metadata]`, `[Proposed target]`, `[Illustrative a
 | Check | Result |
 | --- | --- |
 | `.venv/bin/python -m pytest tests -q` | 84 passed; one Starlette/httpx deprecation warning |
-| `cd apps/web && npm test -- --run` | 54 passed across 8 files |
-| `cd apps/web && npm run build` | Passed; 57 modules; CSS 49.32 kB; JS 373.90 kB |
+| `cd apps/web && npm test -- --run` | 56 passed across 8 files |
+| `cd apps/web && npm run build` | Passed; 57 modules; CSS 49.45 kB; JS 373.81 kB |
 | Real file E2E | Upload → queued job → worker → 398/398 samples → 1 event → evidence available → review |
 | Measured run | 41,953 ms wall; RTF 0.528; 612,372 KB peak RSS; 108 detections; 16 tracks |
 | Evidence playback | HTTP 200/206, browser `readyState = 4`, duration 25.2 s, no media error |

@@ -123,8 +123,8 @@ The UI timeline was verified against these values: `Before 10s`, `Observed inter
 | Suite | Result |
 | --- | --- |
 | Backend `pytest tests -q` | **84 passed** |
-| Frontend `npm test -- --run` | **54 passed** across 8 files |
-| Frontend production build | Passed: 57 modules, 49.32 kB CSS, 373.90 kB JS (9.57 / 112.95 kB gzip) |
+| Frontend `npm test -- --run` | **56 passed** across 8 files |
+| Frontend production build | Passed: 57 modules, 49.45 kB CSS, 373.81 kB JS (9.61 / 112.97 kB gzip) |
 | Browser automation | Passed at 1440×1000 and 390×844 |
 
 Backend coverage includes:
