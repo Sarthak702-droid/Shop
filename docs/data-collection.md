@@ -90,27 +90,73 @@ rclone is installed at `~/.local/bin/rclone`. Its shared Google client ID is bei
 own client ID (<https://rclone.org/drive/#making-your-own-client-id>) and run
 `rclone config update shopdrive client_id=… client_secret=…` to avoid interruption.
 
-## Training plan
+## Annotation (VIA)
 
-No training code exists yet. With MERL in place, the next build steps are:
+Tool: **VGG Image Annotator 3.0.13** (`via_video_annotator.html`, BSD-2). It's a single 441 KB HTML file that runs
+offline in any browser, with no server, account or install. CVAT and Label Studio need Docker or a Python server
+and much more disk. VIA's project format is plain JSON, so the scripts read and write it directly.
 
-1. **Feature extraction.** Run the existing CPU person detector and tracker over each video at 5 Hz. Write per-window
-   features (box geometry and motion now; pose once a pose checkpoint is approved) to `derived/features/`. Label each
-   window from `intervals.csv` (frame ÷ 30 → seconds).
-2. **TCN training.** A small causal TCN, as specified in the ML guide, trained on the 60 train videos. Use the 18
-   validation videos for early stopping and thresholds, apply a masked BCE loss, and keep the class order fixed.
-3. **Evaluation.** Score once on the 28 test videos and report per-class precision, recall and segment F1 in
-   `evaluation/`. Never tune on the test split.
-4. **Checkpoint.** Save to `checkpoints/` with a manifest (feature schema hash, class order, dataset manifest MD5,
-   `development_only`).
+On Drive under `annotations/via/`:
 
-Training can run on this CPU. Google Colab can also read the same Drive folder:
+| File | Purpose |
+| --- | --- |
+| `via_video_annotator.html`, `VIA_LICENSE.txt` | The tool |
+| `merl_shopping/xx_yy_via.json` (106) | MERL labels pre-loaded as timeline segments, for review or correction |
+| `shop_own_footage_template.json` | Shop's 5 actions as temporal segments + `visible_product / bag / basket / hand` boxes |
+| `HOW_TO_ANNOTATE.txt` | Step-by-step guide |
 
-```python
-from google.colab import drive
-drive.mount('/content/drive')
-DATA = '/content/drive/MyDrive/ShopliftingAI-Data'   # if the folder sits in My Drive root
+Verified in headless Chromium: project `1_1` loads with the video and all 65 segments on five action rows.
+Edited projects convert back with `ml/merl/annotation.py import`, and the round-trip is frame-exact
+(`tests/test_via.py`).
+
+## Training and evaluation
+
+Everything reads from and writes to Drive. Local files are short-lived temporaries.
+
+```bash
+# 1. Features: 106 videos -> derived/features/merl_features_v1/*.npz   (~2 h on this CPU, resumable)
+.venv/bin/python ml/merl/features.py
+
+# 2. Train (train split), select on validation -> checkpoints/merl_tcn_v1/<run>/
+.venv/bin/python -u ml/merl/train.py --model tcn     2>&1 | tee /tmp/merl_train.log
+.venv/bin/python -u ml/merl/train.py --model linear  # no-context baseline
+
+# 3. Test once (subjects 27-41) -> evaluation/merl_tcn_v1/<run>/report.md
+.venv/bin/python ml/merl/evaluate.py --run latest
 ```
+
+| Stage | Detail |
+| --- | --- |
+| Features `merl_features_v1` (1,201 per step, 5 Hz) | SSDLite backbone ROI around the largest person (672) + global map (480) + person geometry (11) + frame-difference motion over all 6 frames (38) |
+| Labels | Step label = MERL interval covering the step's centre frame |
+| Model | `shop_core.temporal.tcn.ActionTCN`: causal, 4 residual blocks, dilations 1-2-4-8, 64 channels |
+| Loss | Masked BCE with positive-class weights (multi-label: classes overlap) |
+| Selection | Early stopping and per-class thresholds on the 18 validation videos only |
+
+### Results
+
+| Model | Run | Test frame mAP | Test segment mAP@0.5 |
+| --- | --- | ---: | ---: |
+| Chance (class prevalence) | — | 0.154 | — |
+| No-context baseline (per-step linear) | `linear-20261117T222354Z` | 0.450 | 0.124 |
+| **Causal TCN** (61-step / 12 s receptive field) | `tcn-20261117T221342Z` | **0.592** | **0.289** |
+
+TCN per class on the 28 test videos `[Actual measured result]`:
+
+| Class | Frame AP | Chance | Frame F1 | Segment AP | Segment F1 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| reach_to_shelf | 0.569 | 0.136 | 0.526 | 0.255 | 0.347 |
+| retract_from_shelf | 0.608 | 0.139 | 0.565 | 0.406 | 0.431 |
+| hand_in_shelf | 0.552 | 0.098 | 0.492 | 0.261 | 0.244 |
+| inspect_product | 0.577 | 0.162 | 0.534 | 0.200 | 0.163 |
+| inspect_shelf | 0.653 | 0.234 | 0.657 | 0.321 | 0.298 |
+
+Time context is what makes this work: segment mAP more than doubles over the per-step baseline. Short hand motions
+(reach, retract) gain the most.
+
+Limits: one overhead camera in one mock store; the COCO person detector finds a person in only ~55% of steps from this
+angle (score ≥ 0.15); there is no pose model; the scores are uncalibrated. The checkpoint is `development_only`
+(`ml/manifests/merl_action_tcn_dev.json`) and is **not** enabled in the Shop runtime.
 
 ## Own footage still required
 

@@ -1,0 +1,48 @@
+{
+  "schema_version": "shop_model_manifest_v1",
+  "bundle_id": "merl_action_tcn_v1",
+  "run": "tcn-20261117T221342Z",
+  "status": "trained_research_not_enabled",
+  "role": "temporal_activity_model",
+  "architecture": "shop_core.temporal.tcn.ActionTCN",
+  "constructor": {
+    "in_channels": 1201,
+    "hidden": 64,
+    "kernel_size": 3,
+    "dilations": [1, 2, 4, 8],
+    "dropout": 0.3,
+    "temporal": true
+  },
+  "receptive_field_samples": 61,
+  "sample_rate_hz": 5,
+  "feature_version": "merl_features_v1",
+  "feature_note": "SSDLite backbone ROI (672) + global (480) + person geometry (11) + frame-difference motion (38). Not shop_features_v1: no pose.",
+  "class_order": ["reach_to_shelf", "retract_from_shelf", "hand_in_shelf", "inspect_product", "inspect_shelf"],
+  "thresholds": "per class, chosen on validation; stored inside model.pt",
+  "weight_artifact": {
+    "location": "Google Drive: ShopliftingAI-Data/checkpoints/merl_tcn_v1/tcn-20261117T221342Z/model.pt",
+    "bytes": 721641,
+    "md5": "55374761409bc253eb92cb9bf2ccef8d"
+  },
+  "training_dataset_manifest": "Google Drive: ShopliftingAI-Data/manifests/merl_shopping.json",
+  "split": "Google Drive: ShopliftingAI-Data/splits/merl_shopping_official.json (subjects 1-20 / 21-26 / 27-41)",
+  "license": {
+    "code": "repository",
+    "weights": "derived from MERL Shopping (research and educational use only) and COCO-pretrained SSDLite (development_only)",
+    "source_media": "MERL Shopping Dataset, research and educational use only"
+  },
+  "commercial_approval": "development_only",
+  "approved_for_commercial_release": false,
+  "evaluation": {
+    "report": "Google Drive: ShopliftingAI-Data/evaluation/merl_tcn_v1/tcn-20261117T221342Z/report.md",
+    "measured_on_this_host": true,
+    "test_videos": 28,
+    "test_steps": 19288,
+    "frame_map": 0.592,
+    "chance_map": 0.154,
+    "segment_map_iou_0_5": 0.289,
+    "baseline_no_context": {"run": "linear-20261117T222354Z", "frame_map": 0.450, "segment_map_iou_0_5": 0.124}
+  },
+  "calibration_version": null,
+  "notes": "Research model for observable shelf interactions on MERL's single overhead view. Not wired into the Shop runtime (configs/shop.yaml keeps the temporal module disabled). Outputs are uncalibrated action scores, never theft or intent scores. Does not cover hand_near_bag or item_visibility_lost."
+}

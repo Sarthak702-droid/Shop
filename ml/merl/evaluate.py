@@ -37,7 +37,8 @@ DRIVE_EVAL = "evaluation/merl_tcn_v1"
 
 def latest_run() -> str:
     out = drive._run("lsf", "--dirs-only", drive.path(DRIVE_CKPT))  # noqa: SLF001
-    runs = sorted(line.rstrip("/") for line in out.splitlines() if line.strip())
+    # Run names are "<model>-<UTC timestamp>"; order by the timestamp, not the model prefix.
+    runs = sorted((line.rstrip("/") for line in out.splitlines() if line.strip()), key=lambda r: r.rsplit("-", 1)[-1])
     if not runs:
         raise SystemExit("no checkpoints on Drive yet; run ml/merl/train.py")
     return runs[-1]

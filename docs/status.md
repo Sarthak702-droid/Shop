@@ -23,6 +23,7 @@ Provenance labels: `[Publisher metadata]`, `[Proposed target]`, `[Illustrative a
 | API | Delivered baseline | `/api/v1`, strict schemas, request IDs, safe errors, auth option, idempotency, ETag, media, reviews, audit, retention |
 | Review UI | Delivered | React/TypeScript/Vite, Shop tokens, responsive desktop/narrow, all page states, null-score presentation |
 | Reviews | Delivered | Append-only benign/review_needed/inconclusive outcomes, reason codes, correction history |
+| MERL temporal research pipeline | Delivered (research) | Drive-only feature extraction, causal TCN training, test evaluation, VIA annotation round-trip; see `docs/data-collection.md` |
 | Tests | Delivered | 84 backend, 56 frontend, production build, browser checks `[Actual measured result]` |
 | Documentation | Delivered | README, architecture, API, models, data, evaluation, runbook, this status |
 
@@ -36,7 +37,7 @@ Provenance labels: `[Publisher metadata]`, `[Proposed target]`, `[Illustrative a
 | 3. Durable jobs, API, review UI | Complete baseline | Functional E2E; auth/retention gaps below |
 | 4. Retail detection | Blocked | No product bounding-box labels (MERL has action intervals only), trained checkpoint, or evaluation |
 | 5. Pose | Blocked | No installed/approved checkpoint; CPU feasibility unmeasured |
-| 6. Temporal features and TCN | **Data ready (research)** | MERL Shopping: 106 videos, 5,377 labelled intervals, frozen subject split. Next: feature extractor, training script, calibration. Covers shelf-interaction actions only |
+| 6. Temporal features and TCN | **Research model trained** | MERL Shopping causal TCN: test frame mAP 0.592 (chance 0.154, no-context baseline 0.450), segment mAP@0.5 0.289. `development_only`, not enabled in the runtime, uncalibrated; covers shelf interactions only |
 | 7. RTSP and multi-camera | Deferred | Explicitly disabled; no credential or stream adapter |
 | 8. Exports, deletion-status resource, legal hold | Not implemented | Deletion is a local tombstone; no export pipeline |
 | 9. Commercial hardening | Not started | Packaging, service units, multi-user roles, formal accessibility/security review |
@@ -61,7 +62,7 @@ Provenance labels: `[Publisher metadata]`, `[Proposed target]`, `[Illustrative a
 - **Commercial person checkpoint rights.** The COCO-derived TorchVision weights are `development_only`; commercial release approval is unresolved.
 - **Approved retail detector.** No trained artifact, no visible-product/bag/basket labels, no rights decision.
 - **Pose checkpoint.** Reference manifest only; checkpoint absent; CPU feasibility unknown.
-- **Temporal model.** Labelled data now exists (MERL Shopping), but there is no feature extractor, training script, trained checkpoint, calibration, or evaluation report.
+- **Temporal model.** A research checkpoint exists (MERL, `development_only`), but there is no calibration, no `shop_features_v1` extractor (pose is absent), no own-footage evaluation, and no runtime integration.
 - **Dataset manifests.** MERL Shopping has a dataset manifest (rights, MD5 per file, class mapping) and a split manifest. A Shop-specific own-footage dataset and its consent/purpose record do not exist.
 - **Store acceptance data.** No approved target-store footage, benign baseline, supported camera views, or action annotations.
 - **Privacy zone authoring.** Frames are masked from config, but there is no polygon editor, preview overlay, or per-source zone validation UI.
@@ -118,7 +119,7 @@ The evaluation fixture DB now contains upload `3b0ed65b-7b33-46ad-bb8e-5c7ef7328
 1. Add a polygon editor and preview overlay so operators can author and visually confirm privacy zones without editing YAML; keep the existing mask/ROI application tests.
 2. Decide the auth deployment model: mandatory token for anything beyond loopback, plus TLS/reverse-proxy guidance and role separation.
 3. Implement metadata/audit expiry and a retention scheduler, or remove the unused settings from the public config until enforced.
-4. Build the MERL temporal pipeline: per-window features from the existing person detector/tracker (plus pose when available), a causal TCN training script on `splits/merl_shopping_official.json`, and a per-class evaluation on the 28 test videos. Keep the checkpoint `development_only`.
+4. Improve the MERL model: add a hand/pose signal, calibrate scores on validation, and try a higher step rate for short reaches. Re-evaluate once on the test split.
 5. Record consented own footage (`raw/own/`) with bag, visibility-loss and benign labels, the classes MERL cannot supervise; measure person detection and event recall/false alerts on it.
 6. Train/validate a retail visible-product detector only after data/rights/CPU gates pass; do not reuse COCO classes.
 7. Implement feature extraction and freeze `shop_features_v1` only after pose/product validity semantics are tested; train the TCN under grouped splits and calibrate.

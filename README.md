@@ -117,7 +117,8 @@ The UI never shows fabricated incidents.
 - [x] Privacy polygons rasterised **before** detection, preview and evidence, plus an analysis ROI
 - [x] Append-only human reviews with reason codes and a correction history
 - [x] Optional bearer token, reviewer allow-list, request IDs, idempotency keys, ETags, audit log and retention maintenance
-- [ ] Retail product detection, pose, temporal TCN *(gated: needs rights-approved labelled data)*
+- [x] Research causal TCN for shelf interactions, trained and tested on MERL Shopping (Drive-only pipeline, VIA annotation)
+- [ ] Retail product detection, pose, runtime temporal model *(gated: needs rights-approved labelled data)*
 - [ ] RTSP, multi-camera scheduling, exports, legal hold, polygon editor *(see [Status](docs/status.md))*
 
 ---
@@ -239,7 +240,7 @@ evaluation fixture:
 | 3 | Durable jobs, API, review UI | ✅ Complete baseline |
 | 4 | Retail product detection | ⛔ Blocked: no product box labels |
 | 5 | Pose | ⛔ Blocked: no approved checkpoint |
-| 6 | Temporal features + TCN, calibration | 🟡 Data ready: MERL Shopping (5,377 labelled intervals); training not started |
+| 6 | Temporal features + TCN, calibration | 🟡 Research TCN trained on MERL: test frame mAP **0.592** (chance 0.154); not calibrated or enabled |
 | 7 | RTSP and multi-camera | ⏸️ Deferred |
 | 8 | Exports, deletion status, legal hold | 🔜 Not implemented |
 | 9 | Commercial hardening (packaging, roles, formal a11y/security) | 🔜 Not started |

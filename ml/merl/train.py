@@ -129,7 +129,7 @@ def main() -> None:
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
             opt.step()
-            total += float(loss) * float(m.sum())
+            total += loss.item() * float(m.sum())
             steps += float(m.sum())
         sched.step()
         val_ap = per_class_ap(predict(model, val, mean, std), val)

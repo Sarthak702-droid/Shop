@@ -40,6 +40,7 @@ Any failure returns a safe reason and code (`MODEL_ARTIFACT_MISSING`, `MODEL_HAS
 | Retail detector | `retail_detector_untrained.json` | No | No | `not_approved`; no artifact | Untrained; no checkpoint |
 | Pose reference | `pose_keypointrcnn_unavailable.json` | No | No | `not_approved`; checkpoint not installed | CPU feasibility unmeasured |
 | Temporal TCN | `temporal_tcn_untrained.json` | No | No | `pending`; no artifact | Architecture reference only |
+| MERL action TCN (research) | `merl_action_tcn_dev.json` | No | Checkpoint on Drive | `development_only` (MERL research licence) | Test frame mAP 0.592, segment mAP@0.5 0.289 on 28 MERL videos `[Actual measured result]` |
 
 `commercial_status` is a manifest declaration, not an accuracy or legal conclusion. The API also states that evaluation is unmeasured unless `details.measured_on_this_host` is true.
 
