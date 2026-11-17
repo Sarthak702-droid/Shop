@@ -1,0 +1,62 @@
+{
+  "schema_version": "shop_model_manifest_v1",
+  "model_id": "ssdlite320_mobilenet_v3_large_person",
+  "version": "coco_v1_local_dev",
+  "role": "person_detector",
+  "architecture": "torchvision.models.detection.ssdlite320_mobilenet_v3_large",
+  "constructor": {
+    "num_classes": 91,
+    "weights": null,
+    "weights_backbone": null,
+    "trainable_backbone_layers": 6,
+    "norm_layer": "FrozenBatchNorm2d"
+  },
+  "weights": {
+    "path": "var/models/ssdlite320_mobilenet_v3_large_coco-a79551df.pth",
+    "sha256": "a79551df90c79834bcd3bb3845ef9d966b5449a3a9b2833ae8404778ca5d65d2",
+    "bytes": 14069355,
+    "source": "https://download.pytorch.org/models/ssdlite320_mobilenet_v3_large_coco-a79551df.pth",
+    "source_dataset": "COCO 2017",
+    "retrieved_at_utc": "2026-11-17T07:24:00Z"
+  },
+  "preprocessing": {
+    "color_order": "BGR->RGB explicit",
+    "layout": "HWC uint8 -> CHW float32 / 255",
+    "resize": "internal torchvision detector transform to 320x320",
+    "normalization": "internal torchvision ImageNet mean/std for backbone",
+    "coordinate_output": "original input image pixels (xyxy)"
+  },
+  "output": {
+    "class_count": 91,
+    "background_index": 0,
+    "person_class_index": 1,
+    "class_ordering": "torchvision SSDLite320_MobileNet_V3_Large_Weights.COCO_V1 meta categories",
+    "coordinate_convention": "continuous xyxy; half-open area; no +1 pixel"
+  },
+  "runtime": {
+    "device": "cpu",
+    "torch_build": "2.10.0+cpu",
+    "torchvision_build": "0.25.0+cpu",
+    "torch_cuda": null,
+    "requires_cuda": false
+  },
+  "feature_schema": null,
+  "training_dataset_manifest": null,
+  "code_version": "shop-0.1.0",
+  "license": {
+    "code": "BSD-3-Clause (TorchVision)",
+    "weights": "COCO-derived TorchVision pretrained weights; TorchVision requires users to determine pretrained weight permissions",
+    "source_media": "COCO images retain separate image rights; annotations CC BY 4.0"
+  },
+  "approval": {
+    "commercial_status": "development_only",
+    "approved_for_commercial_release": false,
+    "approved_by": null,
+    "notes": "Approved for local development and internal evaluation only. Commercial release requires a completed checkpoint and dataset rights review. This manifest does not claim retail-person accuracy."
+  },
+  "evaluation": {
+    "report": null,
+    "measured_on_this_host": false,
+    "metrics": {}
+  }
+}

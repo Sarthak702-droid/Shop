@@ -1,0 +1,18 @@
+# Local runtime and generated state
+var/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.env
+
+# Frontend
+node_modules/
+apps/web/dist/
+apps/web/*.tsbuildinfo
+
+# Local logs / editor
+*.log
+.DS_Store

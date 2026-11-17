@@ -1,0 +1,87 @@
+# Shop local configuration.
+# Every numeric value is a PROPOSED starting setting unless a measurement report says otherwise.
+schema_version: 1
+
+runtime:
+  device: cpu
+  inference_threads: 4
+  active_jobs: 1
+  queued_jobs: 2
+  # Permits the bundled person detector, whose commercial approval is pending,
+  # for local development and evaluation. Capabilities always report approval.
+  allow_development_models: true
+
+storage:
+  root: var
+  auto_migrate: true
+  max_upload_bytes: 2147483648
+  min_free_bytes: 1073741824
+  evidence_days: 7
+  metadata_days: 30
+  audit_days: 90
+
+analysis:
+  long_edge_px: 640
+  sampling_fps: 5.0
+  person_score_threshold: 0.50
+  tracker_iou_weight: 0.60
+  tracker_motion_weight: 0.40
+  tracker_gate_chi2: 9.4877
+  tracker_process_noise: 12.0
+  tracker_measurement_noise: 18.0
+  tracker_confirm_hits: 3
+  tracker_max_prediction_ms: 1000
+  tracker_tentative_max_prediction_ms: 250
+  tracker_remove_after_ms: 2500
+  max_person_crops: 4
+  live_queue_frames: 2
+  evidence_context_before_ms: 10000
+  evidence_context_after_ms: 10000
+  event_min_dwell_ms: 4000
+  event_gap_split_ms: 3000
+  max_events_per_job: 200
+
+quality:
+  minimum_valid_fraction: 0.70
+
+policy:
+  version: policy_baseline_v1
+  score_semantics: null
+  high_threshold: 0.80
+  low_threshold: 0.60
+  open_dwell_ms: 1000
+  close_dwell_ms: 1500
+  cooldown_ms: 10000
+
+security:
+  bind_host: 127.0.0.1
+  audio_enabled: false
+  reviewers:
+    - local-reviewer
+  approved_cameras:
+    - key: camera_01
+      label: Built-in camera
+      device_index: 0
+    - key: camera_02
+      label: Secondary camera
+      device_index: 1
+
+models:
+  person_detector:
+    enabled: true
+    manifest: ml/manifests/person_ssdlite320_coco_v1.json
+  retail_detector:
+    enabled: false
+    manifest: ml/manifests/retail_detector_untrained.json
+  pose:
+    enabled: false
+    manifest: ml/manifests/pose_keypointrcnn_unavailable.json
+  temporal:
+    enabled: false
+    manifest: ml/manifests/temporal_tcn_untrained.json
+
+zones:
+  version: zones_default_v1
+  coordinate_space: normalized_original_image
+  analysis_roi: [[0.0, 0.0], [1.0, 0.0], [1.0, 1.0], [0.0, 1.0]]
+  privacy_mask: []

@@ -1,0 +1,37 @@
+{
+  "schema_version": "shop_model_manifest_v1",
+  "bundle_id": "shop_temporal_reference_v1",
+  "status": "proposed_not_trained",
+  "role": "temporal_activity_model",
+  "architecture": "causal_tcn_3_blocks_two_conv",
+  "constructor": {
+    "features": 145,
+    "classes": 5,
+    "hidden_channels": 32,
+    "kernel_size": 3,
+    "dilations": [1, 2, 4],
+    "convolutions_per_dilation": 2,
+    "dropout": 0.1
+  },
+  "feature_version": "shop_features_v1",
+  "feature_count": 145,
+  "sample_rate_hz": 5,
+  "window_samples": 29,
+  "receptive_field_samples": 29,
+  "class_order": [
+    "reach_to_shelf",
+    "product_pickup_observed",
+    "return_to_shelf",
+    "hand_near_bag",
+    "item_visibility_lost"
+  ],
+  "weight_artifact": {"path": null, "sha256": null},
+  "checkpoint_sha256": null,
+  "calibration_version": null,
+  "training_dataset_manifest": null,
+  "code_version": "shop-0.1.0",
+  "license": {"code": "BSD-3-Clause (PyTorch)", "weights": null, "source_media": null},
+  "commercial_approval": "pending",
+  "evaluation_report": null,
+  "notes": "Architecture reference only. Randomly initialized logits are never exposed as predictions or probabilities. Temporal module remains disabled until approved data, training, calibration and CPU evaluation exist."
+}

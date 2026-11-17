@@ -1,0 +1,18 @@
+# Reproducible CPU-only environment for the recorded Shop evaluation host.
+# Torch wheels come from the PyTorch CPU index; all other pins come from PyPI.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch==2.10.0+cpu
+torchvision==0.25.0+cpu
+
+fastapi==0.163.1
+uvicorn==0.41.0
+pydantic==2.14.3
+SQLAlchemy==2.0.44
+alembic==1.17.2
+PyYAML==6.0.3
+numpy==2.5.4
+scipy==1.16.3
+opencv-python-headless==4.13.0.90
+python-multipart==0.0.20
+pillow==13.0.0

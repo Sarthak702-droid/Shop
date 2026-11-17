@@ -1,0 +1,40 @@
+{
+  "schema_version": "shop_model_manifest_v1",
+  "model_id": "keypointrcnn_resnet50_fpn",
+  "version": "reference_not_installed",
+  "role": "pose_reference",
+  "architecture": "torchvision.models.detection.keypointrcnn_resnet50_fpn",
+  "constructor": null,
+  "weights": {
+    "path": null,
+    "sha256": null,
+    "bytes": null,
+    "source": "https://download.pytorch.org/models/keypointrcnn_resnet50_fpn_coco-9f466800.pth"
+  },
+  "preprocessing": null,
+  "output": {
+    "class_count": 2,
+    "keypoint_order": [
+      "nose", "left_eye", "right_eye", "left_ear", "right_ear",
+      "left_shoulder", "right_shoulder", "left_elbow", "right_elbow",
+      "left_wrist", "right_wrist", "left_hip", "right_hip",
+      "left_knee", "right_knee", "left_ankle", "right_ankle"
+    ]
+  },
+  "runtime": {"device": "cpu", "requires_cuda": false},
+  "feature_schema": "shop_features_v1",
+  "training_dataset_manifest": null,
+  "code_version": "shop-0.1.0",
+  "license": {
+    "code": "BSD-3-Clause (TorchVision)",
+    "weights": "COCO-derived reference weights; permissions unresolved",
+    "source_media": "COCO image rights require separate review"
+  },
+  "approval": {
+    "commercial_status": "not_approved",
+    "approved_for_commercial_release": false,
+    "approved_by": null,
+    "notes": "Offline experiment only. Checkpoint not installed, CPU feasibility unmeasured, live pose disabled. Wrist proximity cannot establish contact or concealment."
+  },
+  "evaluation": {"report": null, "measured_on_this_host": false, "metrics": {}}
+}

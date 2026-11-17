@@ -1,0 +1,21 @@
+/* Shop design tokens - proposed product system, 17 November 2026 */
+:root {
+  --shop-navy: #142B3B;
+  --shop-teal: #087F78;
+  --shop-canvas: #F5F7F8;
+  --shop-surface: #FFFFFF;
+  --shop-text-muted: #536572;
+  --shop-border: #DCE4E8;
+  --shop-control-border: #7C8C96;
+  --shop-review: #A65D08;
+  --shop-review-soft: #FFF4DE;
+  --shop-danger: #C53B42;
+  --shop-danger-soft: #FFF0F1;
+  --shop-teal-soft: #E6F4F1;
+  --shop-font: Inter, system-ui, sans-serif;
+  --shop-radius: 12px;
+  --shop-control-height: 44px;
+  --shop-motion: 160ms;
+}
+:focus-visible { outline: 3px solid var(--shop-teal); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }

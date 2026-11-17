@@ -1,0 +1,53 @@
+{
+  "brand": "Shop",
+  "version": "1.0",
+  "date": "2026-11-17",
+  "color": {
+    "navy": "#142B3B",
+    "teal": "#087F78",
+    "canvas": "#F5F7F8",
+    "surface": "#FFFFFF",
+    "text-muted": "#536572",
+    "border": "#DCE4E8",
+    "control-border": "#7C8C96",
+    "review": "#A65D08",
+    "review-soft": "#FFF4DE",
+    "danger": "#C53B42",
+    "danger-soft": "#FFF0F1",
+    "teal-soft": "#E6F4F1"
+  },
+  "font": {
+    "family": "Inter, system-ui, sans-serif",
+    "body_px": 16,
+    "label_px": 14,
+    "caption_px": 12,
+    "page_title_px": 30,
+    "weight": {
+      "body": 400,
+      "label": 500,
+      "heading": 600
+    }
+  },
+  "space_px": [
+    4,
+    8,
+    12,
+    16,
+    24,
+    32,
+    48,
+    64
+  ],
+  "radius_px": {
+    "control": 8,
+    "panel": 12,
+    "badge": 999
+  },
+  "control": {
+    "minimum_height_px": 44
+  },
+  "motion": {
+    "standard_ms": 160,
+    "reduced_motion": "disable nonessential transitions"
+  }
+}

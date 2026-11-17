@@ -1,0 +1,42 @@
+[project]
+name = "shop"
+version = "0.1.0"
+description = "Shop: local-first retail video analysis and human review"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "alembic>=1.17,<1.18",
+    "fastapi>=0.163,<0.164",
+    "numpy>=2.5,<3",
+    "opencv-python-headless>=4.13,<5",
+    "pillow>=13,<14",
+    "pydantic>=2.14,<3",
+    "python-multipart>=0.0.20,<0.1",
+    "PyYAML>=6,<7",
+    "scipy>=1.16,<2",
+    "SQLAlchemy>=2.0.44,<2.1",
+    "torch>=2.10,<2.11",
+    "torchvision>=0.25,<0.26",
+    "uvicorn>=0.41,<0.42",
+]
+
+[project.optional-dependencies]
+dev = ["httpx>=0.28,<0.29", "pytest>=9,<10"]
+
+[build-system]
+requires = ["setuptools>=78"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["packages/shop_core", "apps/api", "apps/worker"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+  "slow: exercises real model inference on CPU",
+  "e2e: requires a running API and browser",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"

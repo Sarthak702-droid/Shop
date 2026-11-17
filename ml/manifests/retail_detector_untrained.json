@@ -1,0 +1,38 @@
+{
+  "schema_version": "shop_model_manifest_v1",
+  "model_id": "retail_ssdlite320_visible_product",
+  "version": "proposed_not_trained",
+  "role": "retail_detector",
+  "architecture": "torchvision.models.detection.ssdlite320_mobilenet_v3_large",
+  "constructor": {
+    "num_classes": 4,
+    "weights": null,
+    "weights_backbone": null,
+    "notes": "background=0, visible_product=1, bag=2, shopping_basket=3"
+  },
+  "weights": {
+    "path": null,
+    "sha256": null,
+    "bytes": null,
+    "source": null
+  },
+  "preprocessing": null,
+  "output": {
+    "class_count": 4,
+    "background_index": 0,
+    "class_names": ["background", "visible_product", "bag", "shopping_basket"],
+    "coordinate_convention": "continuous xyxy original pixels"
+  },
+  "runtime": {"device": "cpu", "requires_cuda": false},
+  "feature_schema": null,
+  "training_dataset_manifest": null,
+  "code_version": "shop-0.1.0",
+  "license": {"code": "BSD-3-Clause (TorchVision)", "weights": null, "source_media": null},
+  "approval": {
+    "commercial_status": "not_approved",
+    "approved_for_commercial_release": false,
+    "approved_by": null,
+    "notes": "No trained retail detector exists. Module disabled. Visible product detection must not be simulated with a generic COCO checkpoint."
+  },
+  "evaluation": {"report": null, "measured_on_this_host": false, "metrics": {}}
+}
