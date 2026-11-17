@@ -151,6 +151,9 @@ export function ErrorPanel({
 }) {
   const code = error instanceof ApiError ? error.code : null
   const requestId = error instanceof ApiError ? error.requestId : null
+  // A malformed or missing resource will not succeed on retry; offering the button only adds noise.
+  const permanent =
+    error instanceof ApiError && !error.retryable && [400, 404, 409, 410, 422].includes(error.status)
   return (
     <div className="panel error-panel" role="alert">
       <div className="error-panel__icon">
@@ -163,7 +166,7 @@ export function ErrorPanel({
           {code && <span>Code: {code}</span>}
           {requestId && <span>Request: {requestId}</span>}
         </div>
-        {onRetry && (
+        {onRetry && !permanent && (
           <button className="button button--secondary button--small" type="button" onClick={onRetry}>
             <IconRefresh /> Retry
           </button>

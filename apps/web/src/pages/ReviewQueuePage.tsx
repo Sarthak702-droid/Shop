@@ -15,7 +15,7 @@ import {
 } from '../components/Common'
 import { EventDetailPanel } from '../components/EventDetailPanel'
 import { EventRow } from '../components/EventList'
-import { IconAlert, IconFilm, IconQueue, IconSearch } from '../components/Icons'
+import { IconCheck, IconFilm, IconQueue, IconSearch } from '../components/Icons'
 
 type QueueFilter = 'unreviewed' | 'reviewed' | 'all'
 
@@ -53,7 +53,7 @@ function matchesQuery(event: EventSummary, query: string): boolean {
 export function ReviewQueuePage() {
   const params = useParams<{ eventId: string }>()
   const navigate = useNavigate()
-  const [filter, setFilter] = useState<QueueFilter>('unreviewed')
+  const [filter, setFilter] = useState<QueueFilter>(() => (params.eventId ? 'all' : 'unreviewed'))
   const [query, setQuery] = useState('')
   const [older, setOlder] = useState<EventSummary[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
@@ -116,11 +116,6 @@ export function ReviewQueuePage() {
         eyebrow="Human review"
         title="Review queue"
         subtitle="Review observable activity with context. Every record asks for a human decision; none states that theft occurred."
-        actions={
-          <button className="button button--primary" type="button" onClick={() => navigate('/upload')}>
-            Add footage
-          </button>
-        }
       />
 
       <div className="provenance-line">
@@ -141,7 +136,7 @@ export function ReviewQueuePage() {
           value={reviewedToday}
           detail="Append-only review decisions since local midnight."
           tone="teal"
-          icon={<IconAlert />}
+          icon={<IconCheck />}
         />
         <MetricCard
           label="All segments"
@@ -257,7 +252,7 @@ export function ReviewQueuePage() {
               onDeleted={() => feed.reload()}
             />
           ) : (
-            <div className="queue-detail-empty panel">
+            <div className="queue-detail-empty panel" data-empty-detail>
               <EmptyState icon={<IconQueue />} title="Select a segment">
                 <p>
                   The evidence player, quality context, score semantics and review actions appear here. Choose a row

@@ -45,6 +45,17 @@ describe('ReviewQueuePage', () => {
     expect(callsTo(calls, '/events?limit=30&reviewed=true')).toHaveLength(0)
   })
 
+  it('opens deep links in the all-segments view so reviewed events stay visible in the list', async () => {
+    const { calls } = mockQueue(
+      makeEventList([makeEvent({ review_state: 'benign', reviews: [] })]),
+      makeMetrics({ events_by_review_state: { unreviewed: 0, benign: 1 } }),
+    )
+    renderAt(<ReviewQueuePage />, { route: '/review/abc', path: '/review/:eventId' })
+    await waitFor(() => expect(callsTo(calls, '/events?limit=30')).toHaveLength(1))
+    expect(screen.getByRole('tab', { name: 'All segments' })).toHaveAttribute('aria-selected', 'true')
+    expect(callsTo(calls, '/events?limit=30&reviewed=false')).toHaveLength(0)
+  })
+
   it('changes the server-side review-state filter', async () => {
     const { calls } = mockQueue(
       makeEventList([makeEvent({ review_state: 'benign', reviews: [] })]),

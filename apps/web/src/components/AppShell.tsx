@@ -138,9 +138,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <span className="reviewer-avatar" aria-hidden="true">{reviewer.slice(0, 2).toUpperCase()}</span>
                 <span>{reviewer}</span>
               </div>
-              <button className="button button--primary button--small" type="button" onClick={() => navigate('/upload')}>
-                <IconUpload /> Add footage
-              </button>
+              {!location.pathname.startsWith('/upload') && (
+                <button className="button button--primary button--small" type="button" onClick={() => navigate('/upload')}>
+                  <IconUpload /> Add footage
+                </button>
+              )}
             </div>
           </header>
 

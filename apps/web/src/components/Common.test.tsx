@@ -39,6 +39,17 @@ describe('shared UI states', () => {
     expect(retry).toHaveBeenCalledTimes(1)
   })
 
+  it('hides retry for permanent client errors such as a malformed event ID', () => {
+    const error = new ApiError(
+      422,
+      { code: 'VALIDATION_ERROR', message: 'The request did not match the required schema.', retryable: false },
+      'req-422',
+    )
+    render(<ErrorPanel error={error} onRetry={vi.fn()} />)
+    expect(screen.getByRole('alert')).toHaveTextContent('Code: VALIDATION_ERROR')
+    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument()
+  })
+
   it('renders inline notices with the right urgency role', () => {
     const { rerender } = render(<InlineNotice tone="danger" title="Upload rejected">Try again.</InlineNotice>)
     expect(screen.getByRole('alert')).toHaveTextContent('Upload rejected')

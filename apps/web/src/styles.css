@@ -918,6 +918,14 @@ textarea::placeholder {
   letter-spacing: -0.03em;
 }
 
+.metric-card__value-text {
+  display: block;
+  font-size: clamp(1.25rem, 1.7vw, 1.5rem);
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  padding-top: 4px;
+}
+
 .metric-card__detail {
   margin-top: 5px;
   color: var(--muted);
@@ -3509,8 +3517,9 @@ textarea::placeholder {
     max-height: none;
   }
 
+  /* Stacked layout: an empty "select a segment" card below the list is noise. */
   .queue-detail-empty {
-    min-height: 220px;
+    display: none;
   }
 }
 

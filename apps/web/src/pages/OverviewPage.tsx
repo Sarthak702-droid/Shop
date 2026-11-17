@@ -74,14 +74,9 @@ export function OverviewPage() {
         title="Overview"
         subtitle="Observable activity becomes a queue for human context review. Shop does not decide that theft occurred."
         actions={
-          <div className="header-action-stack">
-            <button className="button button--secondary" type="button" onClick={() => navigate('/review')}>
-              Open review queue <IconArrowRight />
-            </button>
-            <button className="button button--primary" type="button" onClick={() => navigate('/upload')}>
-              <IconUpload /> Add footage
-            </button>
-          </div>
+          <button className="button button--secondary" type="button" onClick={() => navigate('/review')}>
+            Open review queue <IconArrowRight />
+          </button>
         }
       />
 
@@ -123,7 +118,7 @@ export function OverviewPage() {
         />
         <MetricCard
           label="Worker"
-          value={worker ? workerLabel(worker.status) : 'Unknown'}
+          value={<span className="metric-card__value-text">{worker ? workerLabel(worker.status) : 'Unknown'}</span>}
           detail={worker?.job_id ? `Active job ${worker.job_id.slice(0, 8)}…` : worker?.detail ?? 'Status unavailable.'}
           tone={worker?.status === 'idle' || worker?.status === 'running' ? 'teal' : 'review'}
           icon={<IconCpu />}
