@@ -1,6 +1,6 @@
 # Status, conflicts, and known gaps
 
-Last updated: 17 November 2026.
+Last updated: 18 November 2026.
 
 This is a working local baseline, not a commercial release. The person pipeline, review workflow, evidence, API, and UI are exercised on real CPU inference. Retail detection, pose, the temporal model, RTSP, and exports are not delivered.
 
@@ -34,9 +34,9 @@ Provenance labels: `[Publisher metadata]`, `[Proposed target]`, `[Illustrative a
 | 1. File ingestion, sampling, person detection, tracking | Complete baseline | One real file run; thresholds not tuned |
 | 2. Descriptive policy, quality, evidence | Complete baseline | Null score; evidence generation measured |
 | 3. Durable jobs, API, review UI | Complete baseline | Functional E2E; auth/retention gaps below |
-| 4. Retail detection | Blocked | No trained checkpoint, labelled rights-approved data, or evaluation |
+| 4. Retail detection | Blocked | No product bounding-box labels (MERL has action intervals only), trained checkpoint, or evaluation |
 | 5. Pose | Blocked | No installed/approved checkpoint; CPU feasibility unmeasured |
-| 6. Temporal features and TCN | Blocked | Feature schema declared; no extractor, labels, training, calibration, or checkpoint |
+| 6. Temporal features and TCN | **Data ready (research)** | MERL Shopping: 106 videos, 5,377 labelled intervals, frozen subject split. Next: feature extractor, training script, calibration. Covers shelf-interaction actions only |
 | 7. RTSP and multi-camera | Deferred | Explicitly disabled; no credential or stream adapter |
 | 8. Exports, deletion-status resource, legal hold | Not implemented | Deletion is a local tombstone; no export pipeline |
 | 9. Commercial hardening | Not started | Packaging, service units, multi-user roles, formal accessibility/security review |
@@ -51,7 +51,7 @@ Provenance labels: `[Publisher metadata]`, `[Proposed target]`, `[Illustrative a
 | Exports | PRD lists `POST /exports` | Not implemented | No export scope/approval workflow exists |
 | Privacy masks/ROI | PRD expects configurable masks and zone checks on preview | Config-defined polygon is applied in preview, detection, and evidence; ROI filters detections by center; no drawing UI or preview overlay | Application is verified by tests; editing still requires the config file. Default mask is empty, so operators must configure it |
 | Review score | PRD/ML describe future calibrated scores | Baseline always stores `null` | No calibration/data. UI renders "Not scored", never 0 |
-| Dataset acquisition | Data guide warns against bulk download and rights assumptions | Only OpenCV `vtest.avi` downloaded as an evaluation fixture | No training or benchmark archive was acquired |
+| Dataset acquisition | Data guide names own footage as the primary source, public sets as gated auxiliaries | MERL Shopping (not in the guide) acquired to Google Drive as the first training set; COCO evaluation pack downloaded then removed by the owner | Unblocks temporal-model research. Research/educational licence keeps any model trained on it `development_only` |
 | Evidence codec | No system FFmpeg/FFprobe on host | OpenCV bundled FFmpeg; VP8 WebM; `avc1` unsupported | Playback works in Chromium; format is reviewer context, not a forensic master |
 | UI concept | Brand concept contains illustrative numbers | UI uses database/API values only; no fabricated incidents | Concept image is not a measured deployment |
 | Browser verification | In-app browser unavailable (`[browser.disconnected]`) | Playwright headless Chromium, desktop 1440×1000 and narrow 390×844 | Real browser engine, automated screenshots; not the in-app browser |
@@ -61,8 +61,8 @@ Provenance labels: `[Publisher metadata]`, `[Proposed target]`, `[Illustrative a
 - **Commercial person checkpoint rights.** The COCO-derived TorchVision weights are `development_only`; commercial release approval is unresolved.
 - **Approved retail detector.** No trained artifact, no visible-product/bag/basket labels, no rights decision.
 - **Pose checkpoint.** Reference manifest only; checkpoint absent; CPU feasibility unknown.
-- **Temporal model.** No feature extractor validation, labelled windows, trained checkpoint, calibration, or evaluation report.
-- **Dataset manifests.** No training dataset manifest, split manifest, consent/purpose record, or rights snapshot for a Shop-specific dataset.
+- **Temporal model.** Labelled data now exists (MERL Shopping), but there is no feature extractor, training script, trained checkpoint, calibration, or evaluation report.
+- **Dataset manifests.** MERL Shopping has a dataset manifest (rights, MD5 per file, class mapping) and a split manifest. A Shop-specific own-footage dataset and its consent/purpose record do not exist.
 - **Store acceptance data.** No approved target-store footage, benign baseline, supported camera views, or action annotations.
 - **Privacy zone authoring.** Frames are masked from config, but there is no polygon editor, preview overlay, or per-source zone validation UI.
 - **Exports and legal hold.** No export scope, approval, encryption, or hold workflow.
@@ -118,11 +118,12 @@ The evaluation fixture DB now contains upload `3b0ed65b-7b33-46ad-bb8e-5c7ef7328
 1. Add a polygon editor and preview overlay so operators can author and visually confirm privacy zones without editing YAML; keep the existing mask/ROI application tests.
 2. Decide the auth deployment model: mandatory token for anything beyond loopback, plus TLS/reverse-proxy guidance and role separation.
 3. Implement metadata/audit expiry and a retention scheduler, or remove the unused settings from the public config until enforced.
-4. Acquire a small, consented, rights-approved local evaluation set with event labels and a benign baseline; measure person detection and event recall/false alerts.
-5. Train/validate a retail visible-product detector only after data/rights/CPU gates pass; do not reuse COCO classes.
-6. Implement feature extraction and freeze `shop_features_v1` only after pose/product validity semantics are tested; train the TCN under grouped splits and calibrate.
-7. Add exports, deletion-status/legal-hold semantics, RTSP reconnect/timestamp handling, and multi-camera scoping.
-8. Add CI, an OpenAPI contract diff, a wheelhouse lock, service units, and a formal accessibility/security review.
+4. Build the MERL temporal pipeline: per-window features from the existing person detector/tracker (plus pose when available), a causal TCN training script on `splits/merl_shopping_official.json`, and a per-class evaluation on the 28 test videos. Keep the checkpoint `development_only`.
+5. Record consented own footage (`raw/own/`) with bag, visibility-loss and benign labels, the classes MERL cannot supervise; measure person detection and event recall/false alerts on it.
+6. Train/validate a retail visible-product detector only after data/rights/CPU gates pass; do not reuse COCO classes.
+7. Implement feature extraction and freeze `shop_features_v1` only after pose/product validity semantics are tested; train the TCN under grouped splits and calibrate.
+8. Add exports, deletion-status/legal-hold semantics, RTSP reconnect/timestamp handling, and multi-camera scoping.
+9. Add CI, an OpenAPI contract diff, a wheelhouse lock, service units, and a formal accessibility/security review.
 
 ## Bottom line
 

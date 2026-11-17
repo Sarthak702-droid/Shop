@@ -16,3 +16,9 @@ apps/web/*.tsbuildinfo
 # Local logs / editor
 *.log
 .DS_Store
+
+# Local dataset copies (real storage is Google Drive, see docs/data-collection.md)
+/data/
+/Videos_MERL_Shopping_Dataset/
+/Labels_MERL_Shopping_Dataset/
+__MACOSX/

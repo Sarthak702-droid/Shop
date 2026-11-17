@@ -104,13 +104,14 @@ No automatic cloud lifecycle or external deletion queue exists.
 
 ## Dataset acquisition status
 
-Only one media fixture was downloaded for this build: OpenCV's `vtest.avi`, stored at `var/evaluation/incoming/vtest.avi`.
+Two media sources are held: OpenCV's `vtest.avi` (local smoke-test fixture) and the **MERL Shopping Dataset** (research training data, on Google Drive at `ShopliftingAI-Data/raw/merl_shopping/`). Storage layout and commands: [data-collection.md](data-collection.md).
 
 | Item | Status | Notes |
 | --- | --- | --- |
 | OpenCV `vtest.avi` | Evaluation fixture only | 768×576, 795 frames, 10 fps, 79.5 s `[Actual measured result]`; no ground-truth theft labels; redistribution/training rights not cleared |
+| **MERL Shopping Dataset** | **Acquired, labelled, split** (states 1–5 below) | 106 overhead videos, 41 subjects, 30 fps, 920×680, 1.73 GiB; 5,377 labelled action intervals in 5 classes; publisher subject split 60 / 18 / 28 videos `[Actual measured result]`. Licence: research and educational use only, **commercial use not granted** `[Publisher metadata]` |
 | Own authorized collection | Not present | Required primary commercial source after consent, purpose, and retention approval |
-| COCO | Not downloaded for training | Annotation license differs from image rights; images/checkpoint lineage need separate review |
+| COCO | Downloaded once for person-detector evaluation, then removed by the owner | Annotation license differs from image rights; images/checkpoint lineage need separate review |
 | MEVA | Not downloaded | CC BY 4.0 plus residual rights/release conditions; matched auxiliary pack only after review |
 | UCF Crime | Not downloaded | Explicit commercial grant unresolved; quarantine until intended-use permission |
 | SKU110K | Not downloaded | Academic noncommercial restriction; no default commercial admission |
@@ -134,7 +135,19 @@ Do not collapse these into a single "ready" flag:
 6. **Training-approved** — consent/purpose/retention and dataset manifest approved.
 7. **Trained** — checkpoint, feature schema hash, calibration, and evaluation report exist.
 
-The current repository has 1–2 only for the OpenCV fixture. No dataset is training-approved, no TCN checkpoint exists, and no retail/product labels exist.
+MERL Shopping reaches states 1–5 for **research** use: hashes in `manifests/merl_shopping.json`, labels converted to `annotations/merl_shopping_v1/intervals.csv`, and the frozen subject-grouped split in `splits/merl_shopping_official.json`. It is not state 6 for a commercial release, because its licence is research/educational only. The OpenCV fixture is at 1–2. No TCN checkpoint exists, and no product bounding-box labels exist.
+
+### MERL classes versus Shop actions
+
+| MERL class (`tlabs{k}`) | Intervals | Shop `ACTION_LABELS` relation |
+| --- | --- | --- |
+| 1 Reach To Shelf | 1,711 | Same as `reach_to_shelf` |
+| 2 Retract From Shelf | 1,621 | Related to `return_to_shelf`, not equal (hand leaves shelf vs. item put back) |
+| 3 Hand In Shelf | 562 | Auxiliary, no Shop label |
+| 4 Inspect Product | 674 | Weak proxy for `product_pickup_observed` (item already in hand) |
+| 5 Inspect Shelf | 809 | Auxiliary negative context |
+
+MERL has **no supervision** for `hand_near_bag` or `item_visibility_lost`, and no product boxes. It can train and evaluate a shelf-interaction temporal model. It cannot by itself train the full five-action Shop TCN or a retail product detector.
 
 ## Training data rules (future)
 

@@ -237,9 +237,9 @@ evaluation fixture:
 | 1 | File ingestion, sampling, person detection, tracking | ✅ Complete baseline |
 | 2 | Descriptive policy, quality, evidence | ✅ Complete baseline |
 | 3 | Durable jobs, API, review UI | ✅ Complete baseline |
-| 4 | Retail product detection | ⛔ Blocked: no rights-approved labelled data |
+| 4 | Retail product detection | ⛔ Blocked: no product box labels |
 | 5 | Pose | ⛔ Blocked: no approved checkpoint |
-| 6 | Temporal features + TCN, calibration | ⛔ Blocked: no labels or training |
+| 6 | Temporal features + TCN, calibration | 🟡 Data ready: MERL Shopping (5,377 labelled intervals); training not started |
 | 7 | RTSP and multi-camera | ⏸️ Deferred |
 | 8 | Exports, deletion status, legal hold | 🔜 Not implemented |
 | 9 | Commercial hardening (packaging, roles, formal a11y/security) | 🔜 Not started |
@@ -275,6 +275,7 @@ absolute paths.
 | [API contract](docs/api.md) | Endpoints, auth, errors, idempotency, media streaming, examples |
 | [Model registry](docs/models.md) | Manifests, hashes, rights, approval gates, disabled modules, feature schema |
 | [Data lineage](docs/data.md) | Source-to-event lineage, database schema, retention, dataset rights status |
+| [Data collection](docs/data-collection.md) | Datasets held, Google Drive layout, MERL label format, training plan |
 | [Evaluation](docs/evaluation.md) | Measured CPU run, test results, browser verification, metric limits |
 | [Runbook](docs/runbook.md) | Install, run, operate, back up, reset, troubleshoot |
 | [Status](docs/status.md) | Delivered scope, deferred capabilities, PRD conflicts, known gaps |
@@ -283,8 +284,9 @@ absolute paths.
 
 ## ⚖️ Data, rights and safety
 
-- **Evaluation data.** Only OpenCV's public `vtest.avi` was downloaded. It exercises decoding, tracking, evidence and review. It is not training data, has no theft labels, and its redistribution rights are not cleared.
-- **No bulk datasets.** UCF-Crime, MEVA, SKU-110K, RPC, D2S, MOT17, Avenue and ShanghaiTech remain quarantined or permission-gated. See [Data](docs/data.md).
+- **Training data.** The [MERL Shopping Dataset](https://www.merl.com/demos/merl-shopping-dataset) is stored on Google Drive: 106 overhead CCTV-style videos of 41 people in a mock grocery store, with 5,377 labelled shelf-interaction intervals (reach, retract, hand in shelf, inspect product, inspect shelf). Its licence allows **research and educational use only**, so any model trained on it stays `development_only`. See [Data collection](docs/data-collection.md).
+- **Smoke-test data.** OpenCV's public `vtest.avi` exercises decoding, tracking, evidence and review. It has no labels.
+- **Not acquired.** UCF-Crime, MEVA, SKU-110K, RPC, D2S, MOT17, Avenue and ShanghaiTech remain permission-gated. Own store footage, the guides' primary commercial source, has not been recorded yet.
 - **Model rights.** The person detector uses COCO-derived TorchVision weights and is marked `development_only` with `approved_for_commercial_release: false`.
 - **Privacy.** No audio, no biometrics, no cross-session identity. Privacy masks are applied before detection. Evidence expires according to the retention setting.
 - **Vocabulary.** Events use only *person activity observed*, *review needed*, *item visibility lost*, *insufficient evidence*, *analysis unavailable* or *inconclusive*. The words *theft*, *suspect* and *guilty* never appear as system output.
