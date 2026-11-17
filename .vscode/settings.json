@@ -1,0 +1,11 @@
+{
+    "terminal.integrated.profiles.linux": {
+        "bash (host)": {
+            "path": "/usr/bin/flatpak-spawn",
+            "args": ["--host", "--env=TERM=xterm-256color", "bash"],
+            "icon": "terminal-bash"
+        }
+    },
+    "terminal.integrated.defaultProfile.linux": "bash (host)",
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python"
+}
