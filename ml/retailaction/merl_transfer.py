@@ -10,6 +10,8 @@ Stages::
     .venv/bin/python -I ml/retailaction/merl_transfer.py extract --archive /path/train.tar --per-label 30
     # 2. Run the runtime model under two input conditions and score it
     .venv/bin/python -I ml/retailaction/merl_transfer.py evaluate
+    # 3. Breakdowns, motion diagnostic, findings and markdown report
+    .venv/bin/python -I ml/retailaction/merl_transfer.py report
 
 Conditions:
 
@@ -268,6 +270,136 @@ def summarize(rows: list[dict], manifest: dict) -> None:
     print(json.dumps({k: v for k, v in out.items() if k != "rows"}, indent=1))
 
 
+def motion_diagnostic(every: int = 5) -> dict:
+    """Is the motion signal like MERL's? Global frame-difference energy and person-vs-surround ratio."""
+    from shop_core.config import load_settings
+    from shop_core.detection.person import PersonDetector
+
+    m = 1163  # motion block: grid mean (16), grid max (16), global (32), inside box (33), ring L/R/T/B (34-37)
+
+    def stats(f: np.ndarray) -> dict:
+        f = f.astype(np.float32)
+        pres = f[:, 1152] > 0.5
+        ring = f[pres, m + 34:m + 38].mean(axis=1)
+        return {"global_motion": float(f[:, m + 32].mean()),
+                "inside_over_ring": float((f[pres, m + 33] / (ring + 1e-6)).mean()) if pres.any() else None}
+
+    split = json.loads((REPO / "var/research/merl_shopping_official.json").read_text())["splits"]["test"]["videos"][:10]
+    merl = [stats(np.load(REPO / f"var/research/merl_features/{v[:-4]}.npz")["features"]) for v in split]
+    settings = load_settings(REPO / "configs/shop.yaml")
+    ex = mf.Extractor.from_detector(PersonDetector.load(settings))
+    manifest = json.loads((PROBE / "manifest.json").read_text())
+    ra = [stats(mf.extract_video(ex, PROBE / "clips" / f"{smp['sample_id']}_{r}.mp4").features)
+          for smp in manifest["samples"][::every] for r in ("rank0", "rank1")]
+    gaps = [np.diff(smp["timestamps"][r]).mean() for smp in manifest["samples"] for r in ("rank0", "rank1")]
+
+    def avg(rows: list[dict], key: str) -> float:
+        return round(float(np.mean([x[key] for x in rows if x[key] is not None])), 4)
+
+    return {"merl_test": {k: avg(merl, k) for k in ("global_motion", "inside_over_ring")} | {"frame_interval_s": round(1 / 30, 4), "videos": len(merl)},
+            "retailaction": {k: avg(ra, k) for k in ("global_motion", "inside_over_ring")} | {"frame_interval_s": round(float(np.mean(gaps)), 3), "videos": len(ra)}}
+
+
+def warmup_diagnostic(warmup_steps: int = 5) -> dict:
+    """Start-of-video artifact: step 0 has zero motion and no history. How much does it explain?"""
+    from shop_core.config import load_settings
+    from shop_core.detection.person import PersonDetector
+
+    settings = load_settings(REPO / "configs/shop.yaml")
+    model = ShelfActionModel.load(settings)
+    ex = mf.Extractor.from_detector(PersonDetector.load(settings))
+    thr = model.thresholds
+    manifest = json.loads((PROBE / "manifest.json").read_text())
+    labels, early, total = [], 0, 0
+    scored: dict[int, list[tuple[float, bool]]] = {0: [], warmup_steps: []}
+
+    def interaction_eps(q: np.ndarray, f: mf.VideoFeatures) -> list:
+        return [e for e in build_episodes(q, thr, model.classes, f.pts_ms, f.person_present, f.person_score, EpisodePolicy())
+                if any(a.label in INTERACTION for a in e.actions)]
+
+    for smp in manifest["samples"]:
+        for rank in ("rank0", "rank1"):
+            f = mf.extract_video(ex, PROBE / "clips" / f"{smp['sample_id']}_{rank}.mp4")
+            probs = model.predict(f.features)
+            eps = interaction_eps(probs, f)
+            total += len(eps)
+            early += sum(1 for e in eps if e.start_step < warmup_steps)
+            labels.append(smp["group"] != "none")
+            for w in scored:
+                q = probs.copy()
+                q[:w] = 0
+                scored[w].append((float((q[:, :3] / thr[:3]).max()), bool(interaction_eps(q, f))))
+    y = np.array(labels)
+    out = {"warmup_steps": warmup_steps, "interaction_episodes": total, "starting_in_warmup": early}
+    for w, vals in scored.items():
+        sc = np.array([a for a, _ in vals])
+        det = np.array([b for _, b in vals])
+        out[f"suppress_first_{w}"] = {"clip_ap": round(average_precision(sc, y), 4), "chance": round(float(y.mean()), 4),
+                                      "detection_positive": round(float(det[y].mean()), 4), "false_episode_negative": round(float(det[~y].mean()), 4)}
+    return out
+
+
+def report() -> None:
+    data = json.loads((OUT / "merl_transfer.json").read_text())
+    rows = data["rows"]
+    data["motion_diagnostic"] = motion_diagnostic()
+    data["warmup_diagnostic"] = warmup_diagnostic()
+    breakdowns = {}
+    for cond in ("as_uploaded", "time_corrected"):
+        R = [r for r in rows if r["condition"] == cond]
+        bins = {}
+        for name, lo, hi in (("person_visible_lt_50", 0, 0.5), ("person_visible_50_90", 0.5, 0.9), ("person_visible_ge_90", 0.9, 1.01)):
+            sel = [r for r in R if lo <= r["person_visible"] < hi]
+            lab = np.array([r["group"] != "none" for r in sel])
+            bins[name] = {"clips": len(sel),
+                          "clip_ap": round(average_precision(np.array([r["interaction_score"] for r in sel]), lab), 4) if lab.any() else None,
+                          "chance": round(float(lab.mean()), 4) if len(sel) else None,
+                          "false_episode_rate_negative": round(float(np.mean([r["episode_with_interaction"] for r in sel if r["group"] == "none"])), 4) if any(r["group"] == "none" for r in sel) else None}
+        breakdowns[cond] = {"by_person_visibility": bins}
+    data["breakdowns"] = breakdowns
+    a, t, ref, md = data["conditions"]["as_uploaded"], data["conditions"]["time_corrected"], data["merl_reference"], data["motion_diagnostic"]
+    pos_rate = np.mean([a["detection_rate"][g] for g in ("take", "put", "touch")])
+    data["findings"] = [
+        f"No transfer: clip-level AP {a['clip_ap_interaction']:.3f} (as uploaded) and {t['clip_ap_interaction']:.3f} (time-corrected) vs {a['chance_ap']:.3f} for a random scorer.",
+        f"Not discriminative: an interaction episode is published for {pos_rate:.0%} of action clips and {a['detection_rate']['none']:.0%} of no-action clips (as uploaded).",
+        f"Wrong timing: the strongest interaction step falls inside the labelled interval in {a['peak_inside_label']:.0%} of action clips, although labels cover {a['label_fraction_of_clip']:.0%} of each clip.",
+        f"Views disagree: rank0 and rank1 of the same clip agree on 'interaction / no interaction' in only {a['view_agreement']:.0%} of clips.",
+        f"Frame timing breaks the motion features: frames are {md['retailaction']['frame_interval_s']:.2f} s apart vs {md['merl_test']['frame_interval_s']:.3f} s in MERL, so global frame-difference energy is {md['retailaction']['global_motion'] / md['merl_test']['global_motion']:.1f}x MERL's; reach_to_shelf fires in {a['class_fire_rate']['reach_to_shelf']:.0%} of all clips.",
+        f"Appearance shift: global backbone features sit {a['feature_shift_z']['global']:.2f} standard deviations from MERL's training mean vs {ref['feature_shift_z']['global']:.2f} for MERL test (fisheye ceiling cameras, rotated/upside-down shoppers, other stores).",
+        f"Re-timing to 30 fps fixes the motion statistics (motion z {a['feature_shift_z']['motion']:.2f} -> {t['feature_shift_z']['motion']:.2f}, MERL {ref['feature_shift_z']['motion']:.2f}) and cuts false episodes to {t['detection_rate']['none']:.0%}, but AP stays at chance: appearance and viewpoint, not only timing, block transfer.",
+        (lambda w: f"Start-of-video artifact: {w['starting_in_warmup']} of {w['interaction_episodes']} interaction episodes start in the first "
+         f"{w['warmup_steps']} steps (step 0 has zero motion and no history). Suppressing them lowers false episodes on no-action clips "
+         f"from {w['suppress_first_0']['false_episode_negative']:.0%} to {w['suppress_first_5']['false_episode_negative']:.0%}, but detections drop equally "
+         f"and AP stays at chance ({w['suppress_first_5']['clip_ap']:.3f}). It inflates counts on short clips; it is not the root cause.")(data["warmup_diagnostic"]),
+        f"Clips are {np.mean([r['duration_s'] for r in rows]):.1f} s long on average, shorter than the model's 12 s causal context, so most predictions use a partially empty context.",
+        "Person visibility matters: " + "; ".join(
+            f"{label} AP {b['clip_ap']:.2f} vs chance {b['chance']:.2f} ({b['clips']} videos)"
+            for label, b in (("visible <50% of steps", breakdowns["as_uploaded"]["by_person_visibility"]["person_visible_lt_50"]),
+                             ("visible >=90%", breakdowns["as_uploaded"]["by_person_visibility"]["person_visible_ge_90"])))
+        + ". Only fully visible shoppers carry a weak signal; the overall detector rate "
+        f"({a['person_visible']:.0%} of steps vs MERL {ref['person_visible']:.0%}) hides views where a top-down or rotated shopper is missed.",
+    ]
+    (OUT / "merl_transfer.json").write_text(json.dumps(data, indent=1) + "\n")
+    lines = ["# MERL shelf-action model on RetailAction cameras", "",
+             f"{data['samples']} clips x 2 ceiling views = {2 * data['samples']} videos from the verified RetailAction train archive "
+             f"(take {data['groups']['take']}, put {data['groups']['put']}, touch {data['groups']['touch']}, no action {data['groups']['none']}). "
+             "The MERL model never saw this data. Clip level: does Shop publish a reach / retract / hand-in-shelf episode?", "",
+             "| | As uploaded | Time-corrected | MERL reference |", "| --- | ---: | ---: | ---: |",
+             f"| Clip AP (action vs no action) | {a['clip_ap_interaction']:.3f} | {t['clip_ap_interaction']:.3f} | chance {a['chance_ap']:.3f} |"]
+    for g in ("take", "put", "touch", "none"):
+        lines.append(f"| Episode published · {g} | {a['detection_rate'][g]:.0%} | {t['detection_rate'][g]:.0%} | |")
+    lines += [f"| Peak step inside label | {a['peak_inside_label']:.0%} | {t['peak_inside_label']:.0%} | label covers {a['label_fraction_of_clip']:.0%} |",
+              f"| View agreement rank0/rank1 | {a['view_agreement']:.0%} | {t['view_agreement']:.0%} | |",
+              f"| Person detected (steps) | {a['person_visible']:.0%} | {t['person_visible']:.0%} | {ref['person_visible']:.0%} |",
+              f"| Global feature shift (z) | {a['feature_shift_z']['global']:.2f} | {t['feature_shift_z']['global']:.2f} | {ref['feature_shift_z']['global']:.2f} |",
+              f"| Motion feature shift (z) | {a['feature_shift_z']['motion']:.2f} | {t['feature_shift_z']['motion']:.2f} | {ref['feature_shift_z']['motion']:.2f} |",
+              "", "## Where it fails", "", *[f"- {x}" for x in data["findings"]], "",
+              "Label assumption: RetailAction interval bounds are fractions of the 32-frame index (all observed values are multiples of 1/32).",
+              "This is a transfer probe on 104 clips, not a benchmark; the RetailAction test split was not read."]
+    (OUT / "merl_transfer.md").write_text("\n".join(lines) + "\n")
+    print("\n".join(lines))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -276,11 +408,14 @@ def main() -> None:
     e.add_argument("--per-label", type=int, default=30)
     e.add_argument("--seed", type=int, default=7)
     sub.add_parser("evaluate")
+    sub.add_parser("report")
     args = ap.parse_args()
     if args.cmd == "extract":
         extract(args.archive, args.per_label, args.seed)
-    else:
+    elif args.cmd == "evaluate":
         evaluate()
+    else:
+        report()
 
 
 if __name__ == "__main__":

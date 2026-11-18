@@ -66,6 +66,23 @@ def merl_section() -> dict[str, Any]:
     return out
 
 
+def transfer_section() -> dict[str, Any] | None:
+    """MERL model on RetailAction ceiling cameras (``ml/retailaction/merl_transfer.py``), rows trimmed."""
+    data = _read(RESULTS / "retailaction" / "merl_transfer.json")
+    if data is None:
+        return None
+    rows = data.get("rows") or []
+    worst_misses = sorted((r for r in rows if r["condition"] == "as_uploaded" and r["group"] != "none" and not r["episode_with_interaction"]),
+                          key=lambda r: r["interaction_score"])[:6]
+    worst_false = sorted((r for r in rows if r["condition"] == "as_uploaded" and r["group"] == "none" and r["episode_with_interaction"]),
+                         key=lambda r: -r["interaction_score"])[:6]
+    keep = ("sample_id", "group", "view", "interaction_score", "person_visible", "steps", "duration_s", "max_by_class")
+    return {k: v for k, v in data.items() if k != "rows"} | {
+        "examples": {"missed": [{k: r[k] for k in keep} for r in worst_misses], "false_alarms": [{k: r[k] for k in keep} for r in worst_false]},
+        "findings": data.get("findings"),
+    }
+
+
 def app_section(session: Session) -> dict[str, Any]:
     jobs = session.execute(
         select(JobRow).where(JobRow.analysis_profile == ACTION_PROFILE).order_by(JobRow.created_at.desc())
@@ -190,6 +207,7 @@ def research_insights(session: Session = Depends(get_session), context: AppConte
         },
         "cpu_benchmark": benchmark,
         "runtime_e2e": runtime_eval,
+        "merl_transfer": transfer_section(),
         "app": app_section(session),
         "action_model": {"available": temporal.available, "model_id": temporal.model_id, "version": temporal.version,
                          "reason": temporal.reason, "commercial_status": temporal.commercial_status},

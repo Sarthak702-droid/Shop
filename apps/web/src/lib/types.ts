@@ -573,6 +573,31 @@ export interface ResearchInsights {
     pooled_frame_map: number
     note: string
   } | null
+  merl_transfer?: {
+    samples: number
+    groups: Record<string, number>
+    merl_reference: { feature_shift_z: Record<string, number>; motion_energy: number; person_visible: number }
+    conditions: Record<'as_uploaded' | 'time_corrected', {
+      clips: number
+      clip_ap_interaction: number
+      chance_ap: number
+      detection_rate: Record<string, number>
+      by_view: Record<string, { clip_ap: number; detection_rate_positive: number; false_episode_rate_negative: number }>
+      view_agreement: number
+      peak_inside_label: number
+      label_fraction_of_clip: number
+      class_fire_rate: Record<string, number>
+      person_visible: number
+      feature_shift_z: Record<string, number>
+    }>
+    breakdowns?: Record<string, { by_person_visibility: Record<string, { clips: number; clip_ap: number | null; chance: number | null; false_episode_rate_negative: number | null }> }>
+    motion_diagnostic?: Record<'merl_test' | 'retailaction', { global_motion: number; inside_over_ring: number; frame_interval_s: number; videos: number }>
+    findings?: string[]
+    examples?: {
+      missed: Array<{ sample_id: string; group: string; view: string; interaction_score: number; person_visible: number }>
+      false_alarms: Array<{ sample_id: string; group: string; view: string; interaction_score: number; person_visible: number }>
+    }
+  } | null
   app: {
     jobs: Array<{
       job_id: string

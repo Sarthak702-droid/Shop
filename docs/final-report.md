@@ -138,6 +138,37 @@ first: a hand-capable pose model (or retraining on the COCO subset), shared pers
 coordinates with validity masks, measured agreement (PCK) between extracted and supplied poses on
 RetailAction's own videos, then retraining. Project completion does not depend on this experiment.
 
+### 3.4 Cross-camera transfer: MERL model on RetailAction views
+
+`ml/retailaction/merl_transfer.py`: 104 clips from the verified RetailAction train archive (take 30,
+put 30, touch 14 (all single-label touch clips with complete timestamps), no action 30), both fisheye ceiling views, giving
+208 videos from other stores. These were run through the integrated runtime path in two conditions: **as uploaded** (the mp4
+declares 6 fps, 32 frames) and **time-corrected** (frames held for their real timestamps at 30 fps). Three of these clips were
+also run through the live app, and each raised the frame-rate, aspect-ratio and short-video warnings.
+
+| | As uploaded | Time-corrected |
+| --- | ---: | ---: |
+| Clip AP, action vs no action (chance 0.712) | 0.680 | 0.673 |
+| Episode published: take / put / touch | 62% / 67% / 54% | 28% / 43% / 32% |
+| Episode published: no action (false) | 65% | 43% |
+| rank0 / rank1 agreement | 53% | 62% |
+
+**Result: the model does not transfer.** Where it fails:
+
+- No transfer: clip-level AP 0.680 (as uploaded) and 0.673 (time-corrected) vs 0.712 for a random scorer.
+- Not discriminative: an interaction episode is published for 61% of action clips and 65% of no-action clips (as uploaded).
+- Wrong timing: the strongest interaction step falls inside the labelled interval in 14% of action clips, although labels cover 32% of each clip.
+- Views disagree: rank0 and rank1 of the same clip agree on 'interaction / no interaction' in only 53% of clips.
+- Frame timing breaks the motion features: frames are 0.25 s apart vs 0.033 s in MERL, so global frame-difference energy is 7.4x MERL's; reach_to_shelf fires in 73% of all clips.
+- Appearance shift: global backbone features sit 2.70 standard deviations from MERL's training mean vs 0.82 for MERL test (fisheye ceiling cameras, rotated/upside-down shoppers, other stores).
+- Re-timing to 30 fps fixes the motion statistics (motion z 1.80 -> 0.63, MERL 0.20) and cuts false episodes to 43%, but AP stays at chance: appearance and viewpoint, not only timing, block transfer.
+- Clips are 7.9 s long on average, shorter than the model's 12 s causal context, so most predictions use a partially empty context.
+- Person visibility matters: visible <50% of steps AP 0.52 vs chance 0.63 (43 videos); visible >=90% AP 0.81 vs chance 0.70 (100 videos). Only fully visible shoppers carry a weak signal; the overall detector rate (74% of steps vs MERL 56%) hides views where a top-down or rotated shopper is missed.
+
+Implication: Shop's domain warnings are justified, and the MERL model's output on another store's cameras is not evidence
+of a shelf interaction. Transfer needs labelled data from the target camera, not just format conversion.
+Report: `ml/results/retailaction/merl_transfer.md`.
+
 ## 4. CPU benchmark
 
 `ml/merl/runtime_e2e.py` on 3 held-out MERL test videos (397.6 s of footage), Intel i7-1065G7,

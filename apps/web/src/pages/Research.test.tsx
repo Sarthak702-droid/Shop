@@ -6,6 +6,7 @@ import pose from '../../../../ml/results/retailaction/pose_compatibility.json'
 import retail from '../../../../ml/results/retailaction/status.json'
 import bench from '../../../../ml/results/benchmarks/cpu_e2e.json'
 import runtime from '../../../../ml/results/merl_tcn_v1/runtime_e2e.json'
+import transfer from '../../../../ml/results/retailaction/merl_transfer.json'
 import { EventDetailPanel } from '../components/EventDetailPanel'
 import { EVENT_ID, JOB_ID, makeEvent, makeJob } from '../test/fixtures'
 import { mockFetch, renderAt } from '../test/utils'
@@ -24,6 +25,7 @@ function insights(overrides: Partial<ResearchInsights['app']> = {}): ResearchIns
     own_evaluation: { available: false, reason: 'No staged own recordings have been annotated yet.' },
     cpu_benchmark: bench as unknown as ResearchInsights['cpu_benchmark'],
     runtime_e2e: runtime as unknown as ResearchInsights['runtime_e2e'],
+    merl_transfer: transfer as unknown as ResearchInsights['merl_transfer'],
     app: {
       jobs: [], job_states: {}, analysed_minutes: 0, job_warnings: {},
       events: { total: 0, reviewed: 0, with_action_feedback: 0, decisions: {}, verdicts: {}, warnings: {}, person_visibility_histogram: [], median_duration_ms: null },
@@ -47,6 +49,16 @@ describe('Research insights page', () => {
     expect(screen.getByText(/No reviewer feedback on predicted actions yet/)).toBeInTheDocument()
     expect(screen.getByRole('table', { name: 'Confusion matrix' })).toBeInTheDocument()
     expect(screen.queryByText(/theft detected|shoplifter|guilty/i)).not.toBeInTheDocument()
+  })
+
+  it('shows the cross-camera transfer test with its failure analysis', async () => {
+    mockFetch(() => ({ body: insights() }))
+    renderAt(<InsightsPage />)
+    expect(await screen.findByText(/Cross-camera test: MERL model on RetailAction views/)).toBeInTheDocument()
+    expect(screen.getByText('Does not transfer')).toBeInTheDocument()
+    expect(screen.getByText(/Does not transfer to other cameras: clip AP/)).toBeInTheDocument()
+    expect(screen.getByText('Where it fails')).toBeInTheDocument()
+    expect(screen.getByText('Time between frames')).toBeInTheDocument()
   })
 
   it('switches the focused class for threshold and calibration charts', async () => {

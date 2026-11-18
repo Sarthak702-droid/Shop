@@ -94,6 +94,15 @@ function deriveFindings(data: ResearchInsights): Finding[] {
       body: warn.map(([k, n]) => `${reasonLabel(k)} in ${n} job${n > 1 ? 's' : ''}`).join('; ') + '. Results on these jobs are less reliable than MERL test numbers suggest.',
     })
   }
+  const tr = data.merl_transfer
+  if (tr) {
+    const a = tr.conditions.as_uploaded
+    out.push({
+      tone: 'review',
+      title: `Does not transfer to other cameras: clip AP ${f3(a.clip_ap_interaction)} vs ${f3(a.chance_ap)} chance on ${tr.samples * 2} RetailAction videos`,
+      body: `Episodes are published for ${pct(a.detection_rate.none)} of no-action clips, about as often as for take/put/touch. Causes: ${tr.motion_diagnostic ? `${tr.motion_diagnostic.retailaction.frame_interval_s} s between frames (MERL 0.033 s), ` : ''}fisheye top-down views with rotated shoppers, and clips shorter than the 12 s context.`,
+    })
+  }
   const ra = data.retailaction
   if (ra.steps) {
     const usable = ra.data?.usable_positive_clips
@@ -490,6 +499,99 @@ export function InsightsPage() {
         )}
       </section>
 
+
+      {data.merl_transfer && (() => {
+        const t = data.merl_transfer
+        const a = t.conditions.as_uploaded
+        const c = t.conditions.time_corrected
+        const groups = ['take', 'put', 'touch', 'none']
+        const vis = t.breakdowns?.as_uploaded.by_person_visibility
+        return (
+          <section className="panel">
+            <SectionHeading
+              title="6a · Cross-camera test: MERL model on RetailAction views"
+              detail={`${t.samples} RetailAction clips × 2 fisheye ceiling views = ${t.samples * 2} videos from other stores (take ${t.groups.take}, put ${t.groups.put}, touch ${t.groups.touch}, no action ${t.groups.none}). The MERL model never saw this data. Question: does Shop publish a reach / retract / hand-in-shelf episode when, and only when, an action happens?`}
+              action={<StatusPill tone="danger">Does not transfer</StatusPill>}
+            />
+            <div className="job-stat-grid">
+              <MetricCard label="Clip AP · as uploaded" value={f3(a.clip_ap_interaction)} detail={`Random scorer ${f3(a.chance_ap)}`} tone="review" icon={<IconAlert />} />
+              <MetricCard label="Clip AP · time-corrected" value={f3(c.clip_ap_interaction)} detail="Frames re-timed to real 30 fps" tone="review" icon={<IconAlert />} />
+              <MetricCard label="False episodes on no-action clips" value={pct(a.detection_rate.none)} detail={`${pct(c.detection_rate.none)} after re-timing`} tone="review" icon={<IconFilm />} />
+              <MetricCard label="rank0 / rank1 agreement" value={pct(a.view_agreement)} detail="Same clip, two cameras, same answer" icon={<IconModel />} />
+            </div>
+            <div className="chart-grid">
+              <ChartFrame
+                title="How often an interaction episode is published"
+                detail="A useful model is high for take/put/touch and low for no-action clips. Here every group looks alike."
+                legend={<Legend items={[{ key: 'a', label: 'As uploaded (6 fps declared)', color: '#2a78d6' }, { key: 'c', label: 'Time-corrected (30 fps)', color: '#eb6834' }]} />}
+                table={
+                  <table className="data-table">
+                    <thead><tr><th>Group</th><th>As uploaded</th><th>Time-corrected</th></tr></thead>
+                    <tbody>{groups.map((g) => <tr key={g}><td>{g === 'none' ? 'no action' : g}</td><td>{pct(a.detection_rate[g])}</td><td>{pct(c.detection_rate[g])}</td></tr>)}</tbody>
+                  </table>
+                }
+              >
+                <ClassDotPlot
+                  rows={groups.map((g) => ({ key: g, label: g === 'none' ? 'no action' : g, values: { a: a.detection_rate[g], c: c.detection_rate[g] } }))}
+                  series={[{ key: 'a', label: 'As uploaded', color: '#2a78d6' }, { key: 'c', label: 'Time-corrected', color: '#eb6834' }]}
+                  format={(v) => `${Math.round(v * 100)}%`}
+                />
+              </ChartFrame>
+              <ChartFrame
+                title="Distance from the training data (mean |z| per feature group)"
+                detail="How far RetailAction features sit from MERL's training distribution, compared with MERL's own held-out test videos."
+                legend={<Legend items={[{ key: 'm', label: 'MERL test', color: '#1baf7a' }, { key: 'a', label: 'RetailAction as uploaded', color: '#2a78d6' }, { key: 'c', label: 'RetailAction time-corrected', color: '#eb6834' }]} />}
+              >
+                <ClassDotPlot
+                  rows={['roi', 'global', 'geom', 'motion'].map((k) => ({ key: k, label: { roi: 'Person region', global: 'Whole frame', geom: 'Person geometry', motion: 'Motion' }[k] ?? k, values: { m: t.merl_reference.feature_shift_z[k], a: a.feature_shift_z[k], c: c.feature_shift_z[k] } }))}
+                  series={[{ key: 'm', label: 'MERL test', color: '#1baf7a' }, { key: 'a', label: 'As uploaded', color: '#2a78d6' }, { key: 'c', label: 'Time-corrected', color: '#eb6834' }]}
+                  domain={[0, 3]}
+                />
+              </ChartFrame>
+            </div>
+            {t.findings && (
+              <>
+                <h3 className="detail-subheading">Where it fails</h3>
+                <ol className="plain-list numbered">{t.findings.map((f, i) => <li key={i}>{f}</li>)}</ol>
+              </>
+            )}
+            <div className="job-grid">
+              {vis && (
+                <div className="table-scroll">
+                  <table className="data-table">
+                    <thead><tr><th>Person visible (as uploaded)</th><th>Videos</th><th>Clip AP</th><th>Chance</th><th>False episodes, no-action</th></tr></thead>
+                    <tbody>{Object.entries(vis).map(([k, b]) => (
+                      <tr key={k}><td>{k.replace('person_visible_', '').replace('lt_', '< ').replace('ge_', '≥ ').replace('_', '–')}%</td><td>{b.clips}</td><td>{f3(b.clip_ap)}</td><td>{f3(b.chance)}</td><td>{pct(b.false_episode_rate_negative)}</td></tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              )}
+              {t.motion_diagnostic && (
+                <div className="table-scroll">
+                  <table className="data-table">
+                    <thead><tr><th>Motion signal</th><th>MERL test</th><th>RetailAction</th></tr></thead>
+                    <tbody>
+                      <tr><td>Time between frames</td><td>{t.motion_diagnostic.merl_test.frame_interval_s} s</td><td>{t.motion_diagnostic.retailaction.frame_interval_s} s</td></tr>
+                      <tr><td>Whole-frame motion energy</td><td>{t.motion_diagnostic.merl_test.global_motion}</td><td>{t.motion_diagnostic.retailaction.global_motion}</td></tr>
+                      <tr><td>Person / surround motion</td><td>{t.motion_diagnostic.merl_test.inside_over_ring.toFixed(1)}×</td><td>{t.motion_diagnostic.retailaction.inside_over_ring.toFixed(1)}×</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+            {t.examples && (
+              <p className="small text-muted">
+                Strongest false alarms (no-action clips): {t.examples.false_alarms.slice(0, 4).map((r) => `${r.sample_id}/${r.view} (score ${r.interaction_score.toFixed(2)}× threshold)`).join(', ')}.
+                Weakest misses: {t.examples.missed.slice(0, 4).map((r) => `${r.sample_id}/${r.view} ${r.group} (${r.interaction_score.toFixed(2)}×, person ${pct(r.person_visible)})`).join(', ')}.
+                Clips are in <code>var/research/retailaction_probe/clips/</code> (local only). Re-run with <code>ml/retailaction/merl_transfer.py</code>.
+              </p>
+            )}
+            <InlineNotice tone="neutral" title="What this means">
+              On new stores and camera angles, Shop's MERL model output is not evidence of a shelf interaction. The in-app domain warnings are therefore correct to flag such videos. Transfer needs training data from the target camera (own staged recordings, or RetailAction after the pose/feature gates pass), not just a different input format.
+            </InlineNotice>
+          </section>
+        )
+      })()}
       <section className="panel">
         <SectionHeading
           title="6 · RetailAction experiment (take / put / touch)"
