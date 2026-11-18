@@ -6,6 +6,7 @@ import { useApiResource } from '../lib/hooks'
 import type { EventListResponse, ReadinessResponse } from '../lib/types'
 import {
   IconCamera,
+  IconChart,
   IconCpu,
   IconGrid,
   IconModel,
@@ -20,6 +21,7 @@ const NAV = [
   { to: '/', label: 'Overview', icon: IconGrid, end: true },
   { to: '/review', label: 'Review queue', icon: IconQueue, badge: true },
   { to: '/cameras', label: 'Cameras', icon: IconCamera },
+  { to: '/insights', label: 'Research insights', icon: IconChart },
   { to: '/models', label: 'Models', icon: IconModel },
   { to: '/settings', label: 'Settings', icon: IconSettings },
 ]
@@ -30,6 +32,7 @@ function pageTitle(pathname: string): string {
   if (pathname.startsWith('/jobs')) return 'Analysis job'
   if (pathname.startsWith('/cameras')) return 'Cameras'
   if (pathname.startsWith('/models')) return 'Models'
+  if (pathname.startsWith('/insights')) return 'Research insights'
   if (pathname.startsWith('/settings')) return 'Settings'
   return 'Overview'
 }

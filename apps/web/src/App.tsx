@@ -7,6 +7,7 @@ import { UploadPage } from './pages/UploadPage'
 import { JobPage } from './pages/JobPage'
 import { CamerasPage } from './pages/CamerasPage'
 import { ModelsPage } from './pages/ModelsPage'
+import { InsightsPage } from './pages/InsightsPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 
@@ -33,6 +34,7 @@ export function App() {
         <Route path="jobs/:jobId" element={<JobPage />} />
         <Route path="cameras" element={<CamerasPage />} />
         <Route path="models" element={<ModelsPage />} />
+        <Route path="insights" element={<InsightsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Route>

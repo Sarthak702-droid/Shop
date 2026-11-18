@@ -1,0 +1,16 @@
+{
+  "consent_record": "manifests/own_eval_consent_2026-11-20.pdf",
+  "camera": "single fixed camera, shelf aisle, ~2.6 m height, angled down",
+  "training_sessions": [],
+  "training_people": [],
+  "recordings": [
+    {"video": "2026-11-20_aisle1_s01_p01.mp4", "via_project": "2026-11-20_aisle1_s01_p01_via.json", "split": "eval",
+     "session": "s01", "people": ["p01"], "scenarios": ["reach", "take_and_return"]},
+    {"video": "2026-11-20_aisle1_s02_p02.mp4", "via_project": "2026-11-20_aisle1_s02_p02_via.json", "split": "eval",
+     "session": "s02", "people": ["p02"], "scenarios": ["inspect", "occlusion"]},
+    {"video": "2026-11-20_aisle1_s03_p01.mp4", "via_project": "2026-11-20_aisle1_s03_p01_via.json", "split": "eval",
+     "session": "s03", "people": ["p01"], "scenarios": ["normal_pass"]},
+    {"video": "2026-11-20_aisle1_s04_p03.mp4", "via_project": "2026-11-20_aisle1_s04_p03_via.json", "split": "eval",
+     "session": "s04", "people": ["p03"], "scenarios": ["low_light", "reach"]}
+  ]
+}

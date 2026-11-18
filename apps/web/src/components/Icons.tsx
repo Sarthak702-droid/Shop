@@ -239,3 +239,13 @@ export function IconChevronDown(props: IconProps) {
     </svg>
   )
 }
+
+export function IconChart(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 20V4" />
+      <path d="M4 20h16" />
+      <path d="M8 16l4-5 3 3 5-7" />
+    </svg>
+  )
+}
