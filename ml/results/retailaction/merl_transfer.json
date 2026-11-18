@@ -15163,7 +15163,25 @@
   "Frame timing breaks the motion features: frames are 0.25 s apart vs 0.033 s in MERL, so global frame-difference energy is 7.4x MERL's; reach_to_shelf fires in 73% of all clips.",
   "Appearance shift: global backbone features sit 2.70 standard deviations from MERL's training mean vs 0.82 for MERL test (fisheye ceiling cameras, rotated/upside-down shoppers, other stores).",
   "Re-timing to 30 fps fixes the motion statistics (motion z 1.80 -> 0.63, MERL 0.20) and cuts false episodes to 43%, but AP stays at chance: appearance and viewpoint, not only timing, block transfer.",
+  "Start-of-video artifact: 78 of 172 interaction episodes start in the first 5 steps (step 0 has zero motion and no history). Suppressing them lowers false episodes on no-action clips from 65% to 58%, but detections drop equally and AP stays at chance (0.682). It inflates counts on short clips; it is not the root cause.",
   "Clips are 7.9 s long on average, shorter than the model's 12 s causal context, so most predictions use a partially empty context.",
   "Person visibility matters: visible <50% of steps AP 0.52 vs chance 0.63 (43 videos); visible >=90% AP 0.81 vs chance 0.70 (100 videos). Only fully visible shoppers carry a weak signal; the overall detector rate (74% of steps vs MERL 56%) hides views where a top-down or rotated shopper is missed."
- ]
+ ],
+ "warmup_diagnostic": {
+  "warmup_steps": 5,
+  "interaction_episodes": 172,
+  "starting_in_warmup": 78,
+  "suppress_first_0": {
+   "clip_ap": 0.6777,
+   "chance": 0.7115,
+   "detection_positive": 0.6216,
+   "false_episode_negative": 0.65
+  },
+  "suppress_first_5": {
+   "clip_ap": 0.6822,
+   "chance": 0.7115,
+   "detection_positive": 0.5811,
+   "false_episode_negative": 0.5833
+  }
+ }
 }
