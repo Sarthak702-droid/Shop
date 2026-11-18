@@ -10,7 +10,7 @@ from __future__ import annotations
 import time
 import uuid
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Protocol
@@ -148,11 +148,14 @@ def read_window_frames(
     sampling_fps: float,
     observations: list[SampleRecord],
     privacy_polygon: list[list[float]] | None = None,
+    max_long_edge: int | None = None,
 ) -> list[EvidenceFrame]:
     """Re-decode a media window for evidence.
 
     Seeking is approximate in many backends, so decoding begins a few seconds
     before the requested start and frames are selected by their own timestamps.
+    ``max_long_edge`` downscales frames as they are read (boxes are rescaled with
+    them) so long windows do not hold full-resolution frames in memory.
     """
     capture = cv2.VideoCapture(str(path))
     if not capture.isOpened():
@@ -189,12 +192,19 @@ def read_window_frames(
                 observation = None
             if privacy_polygon:
                 image = apply_privacy_mask(image, privacy_polygon)
+            detections = observation.detections if observation else []
+            tracks = observation.tracks if observation else []
+            if max_long_edge and max(image.shape[:2]) > max_long_edge:
+                scale = max_long_edge / max(image.shape[:2])
+                image = cv2.resize(image, (max(2, int(round(image.shape[1] * scale))), max(2, int(round(image.shape[0] * scale)))), interpolation=cv2.INTER_AREA)
+                detections = [replace(d, box=tuple(v * scale for v in d.box)) for d in detections]
+                tracks = [replace(t, box=tuple(v * scale for v in t.box)) for t in tracks]
             frames.append(
                 EvidenceFrame(
                     pts_ms=pts_ms,
                     image_bgr=image,
-                    detections=observation.detections if observation else [],
-                    tracks=observation.tracks if observation else [],
+                    detections=detections,
+                    tracks=tracks,
                 )
             )
             next_due = max(next_due + interval, float(pts_ms))

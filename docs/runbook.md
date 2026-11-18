@@ -166,6 +166,24 @@ A queued job moves to `cancelled`; a running job enters `cancelling`, stops at a
 
 If the worker is not running, the job stays `queued` and readiness is degraded. Do not create a second worker to "fix" this; investigate the existing one first.
 
+## 6a. Shelf-action research analysis
+
+```bash
+scripts/models/fetch_merl_tcn.sh          # var/models/merl_tcn_v1/model.pt, SHA-256 checked against the manifest
+scripts/demo/run_demo.sh [video.mp4]      # upload + queue + wait + summary through the live API
+```
+
+In the UI: **Add footage → Shelf actions (MERL research model) → Queue shelf-action analysis**. The job
+page shows the action timeline (click a point to open the nearest episode). Review each episode and
+answer the action-feedback question; results appear on **Research insights**.
+
+- Profile `merl_shelf_actions_research_v1`: file uploads only; cadence fixed at 5 Hz steps.
+- Timeline: `GET /api/v1/jobs/{id}/action-timeline` (409 until completed; integrity-checked).
+- Insights: `GET /api/v1/research/insights`. Regenerate offline results with
+  `ml/merl/analyze.py`, `ml/merl/runtime_e2e.py`, `ml/retailaction/pose_compat.py` and
+  `ml/retailaction/status_snapshot.py`.
+- A missing checkpoint disables only this profile (`ACTION_MODEL_UNAVAILABLE`); baseline jobs keep working.
+
 ## 7. Webcam analysis
 
 The camera must be listed under `security.approved_cameras`. Register it once:

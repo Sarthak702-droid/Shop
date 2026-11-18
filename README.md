@@ -10,7 +10,7 @@
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-%2Fapi%2Fv1-087F78?style=flat-square&logo=fastapi&logoColor=white"/>
   <img alt="React 19 + TypeScript" src="https://img.shields.io/badge/React%2019-TypeScript-142B3B?style=flat-square&logo=react&logoColor=white"/>
   <img alt="SQLite + Alembic" src="https://img.shields.io/badge/SQLite-WAL%20%2B%20Alembic-142B3B?style=flat-square&logo=sqlite&logoColor=white"/>
-  <img alt="Tests" src="https://img.shields.io/badge/tests-84%20backend%20%C2%B7%2056%20frontend-087F78?style=flat-square"/>
+  <img alt="Tests" src="https://img.shields.io/badge/tests-151%20backend%20%C2%B7%2061%20frontend-087F78?style=flat-square"/>
   <img alt="Status" src="https://img.shields.io/badge/status-development%20baseline-A65D08?style=flat-square"/>
 </p>
 
@@ -118,7 +118,9 @@ The UI never shows fabricated incidents.
 - [x] Append-only human reviews with reason codes and a correction history
 - [x] Optional bearer token, reviewer allow-list, request IDs, idempotency keys, ETags, audit log and retention maintenance
 - [x] Research causal TCN for shelf interactions, trained and tested on MERL Shopping (Drive-only pipeline, VIA annotation)
-- [ ] Retail product detection, pose, runtime temporal model *(gated: needs rights-approved labelled data)*
+- [x] **Shelf-action research mode**: upload → five shelf actions on a score timeline → interaction episodes with evidence → reviewer action feedback
+- [x] **Research insights** page: per-class AP, training curves, confusion, calibration, failure cases, CPU cost, reviewer precision, RetailAction gates
+- [ ] Retail product detection, pose, calibrated scores *(gated: needs rights-approved labelled data; see the [final report](docs/final-report.md))*
 - [ ] RTSP, multi-camera scheduling, exports, legal hold, polygon editor *(see [Status](docs/status.md))*
 
 ---
@@ -184,8 +186,8 @@ npm test -- --run
 npm run build
 ```
 
-Last recorded run on this host: **84 backend tests passed**, **56 frontend tests passed**, and the production build
-succeeded (57 modules; 49.45 kB CSS, 373.81 kB JS before gzip). See [Evaluation](docs/evaluation.md).
+Last recorded run on this host: **151 backend tests passed**, **61 frontend tests passed**, and the production build
+succeeded (61 modules; 56.55 kB CSS, 435.38 kB JS before gzip). See [Evaluation](docs/evaluation.md).
 </details>
 
 <details>
@@ -210,6 +212,28 @@ Full contract: [docs/api.md](docs/api.md).
 </details>
 
 ---
+
+## 🔬 Research mode: shelf actions
+
+Choose **Shelf actions (MERL research model)** when queuing an uploaded video. The worker extracts
+`merl_features_v1` (bit-identical to training), runs the causal TCN and publishes short interaction
+episodes with evidence clips and per-action scores. Each job shows a five-lane action timeline, input
+warnings (frame rate, aspect ratio, visibility) and where CPU time went. Reviewers say whether the
+predicted actions match the clip, and those verdicts become per-class precision on **Research insights**.
+
+```bash
+scripts/models/fetch_merl_tcn.sh     # checkpoint + SHA-256 check
+scripts/demo/run_demo.sh             # held-out MERL test video, end to end
+```
+
+| Held-out MERL test (28 videos) | Value |
+| --- | --- |
+| Frame mAP | **0.592** (chance 0.154, no-context baseline 0.450) |
+| Segment mAP @ IoU 0.5 | 0.304 with the validation-chosen runtime policy |
+| CPU (i7-1065G7, 4 threads) | real-time factor 0.35 for features + TCN; 446 MB |
+
+Full experiments, error analysis, the RetailAction pose-compatibility gate and limitations:
+**[docs/final-report.md](docs/final-report.md)**. Staged evaluation protocol: [docs/own-evaluation.md](docs/own-evaluation.md).
 
 ## 📊 Measured baseline
 
@@ -240,7 +264,7 @@ evaluation fixture:
 | 3 | Durable jobs, API, review UI | ✅ Complete baseline |
 | 4 | Retail product detection | ⛔ Blocked: no product box labels |
 | 5 | Pose | ⛔ Blocked: no approved checkpoint |
-| 6 | Temporal features + TCN, calibration | 🟡 Research TCN trained on MERL: test frame mAP **0.592** (chance 0.154); not calibrated or enabled |
+| 6 | Temporal features + TCN, calibration | 🟢 Research TCN integrated (file uploads, research mode): test frame mAP **0.592** (chance 0.154), segment mAP 0.304; ~2.8× real time on CPU; not calibrated |
 | 7 | RTSP and multi-camera | ⏸️ Deferred |
 | 8 | Exports, deletion status, legal hold | 🔜 Not implemented |
 | 9 | Commercial hardening (packaging, roles, formal a11y/security) | 🔜 Not started |

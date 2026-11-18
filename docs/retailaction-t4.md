@@ -17,6 +17,16 @@ not a replacement for MERL's five-class model or a Shop runtime integration.
 6. Validate compatible feature extraction, target Pop!_OS CPU speed and intended-store utility
    before enabling any integration. The current runtime remains unchanged and disabled for this model.
 
+## Status on 18 November 2026
+
+- validation.tar and test.tar are verified on Drive. train.tar is verified locally; the Drive upload was
+  still running (68%). The notebook refuses to train until `TRANSFER_STATUS.json` marks all three verified.
+- The raw-video pose compatibility gate **failed**: there are no hand joints in COCO-17, supplied
+  coordinates are crop-relative heatmap cells, confidences are not comparable, and Keypoint R-CNN costs
+  2.1 s per frame on this CPU. See `ml/results/retailaction/pose_compatibility.json` and
+  `docs/final-report.md` §3.3. Re-run with `ml/retailaction/pose_compat.py`; refresh the dashboard
+  snapshot with `ml/retailaction/status_snapshot.py`.
+
 ## Colab operation
 
 Open the notebook in Colab, select a T4 GPU runtime and mount your own Drive. The default root

@@ -65,7 +65,7 @@ class AppContext:
     def action_bundle(self) -> str:
         temporal = self.models()["temporal"]
         person = self.models()["person_detector"]
-        return f"{temporal.model_id}:{temporal.version}|{person.model_id}:{person.version}|policy:merl_action_episodes_v1"[:100]
+        return f"{temporal.model_id}:{temporal.version}|person:{person.version}|merl_action_episodes_v1"
 
     def require_action_model(self) -> ModelStatus:
         status = self.models()["temporal"]

@@ -58,6 +58,16 @@ def test_episodes_group_nearby_actions_and_pick_primary() -> None:
     assert "insufficient_person_visibility" in second.warnings
 
 
+def test_long_runs_are_split_into_reviewable_episodes() -> None:
+    t = 300
+    probs = np.zeros((t, 5), dtype=np.float32)
+    probs[10:260, 2] = 0.9  # 50 s continuous hand-in-shelf run
+    episodes = build_episodes(probs, np.full(5, 0.5), CLASSES, np.arange(t) * 200, np.ones(t, bool), np.ones(t, np.float32), EpisodePolicy())
+    assert len(episodes) == 3
+    assert all(ep.end_ms - ep.start_ms <= 20000 for ep in episodes)
+    assert episodes[0].start_ms == 2000 and episodes[-1].end_ms == 52000
+
+
 def test_input_warnings_flag_domain_shift() -> None:
     feats = mf.VideoFeatures(
         features=np.zeros((20, mf.FEATURE_DIM), dtype=np.float16), frame_index=np.arange(20), pts_ms=np.arange(20) * 200,

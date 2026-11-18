@@ -80,7 +80,9 @@ function stageLabel(stage: string | null): string {
 
 function hasStage(metrics: Record<string, unknown>, key: string): boolean {
   const timing = metrics.stage_timing
-  return Boolean(timing && typeof timing === 'object' && key in timing)
+  if (!timing || typeof timing !== 'object') return false
+  const entry = (timing as Record<string, unknown>)[key]
+  return Boolean(entry && typeof entry === 'object')
 }
 
 function stageTiming(metrics: Record<string, unknown>, key: string): Record<string, unknown> | null {

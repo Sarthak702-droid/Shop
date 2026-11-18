@@ -24,7 +24,8 @@ Provenance labels: `[Publisher metadata]`, `[Proposed target]`, `[Illustrative a
 | Review UI | Delivered | React/TypeScript/Vite, Shop tokens, responsive desktop/narrow, all page states, null-score presentation |
 | Reviews | Delivered | Append-only benign/review_needed/inconclusive outcomes, reason codes, correction history |
 | MERL temporal research pipeline | Delivered (research) | Drive-only feature extraction, causal TCN training, test evaluation, VIA annotation round-trip; see `docs/data-collection.md` |
-| Tests | Delivered | 84 backend, 56 frontend, production build, browser checks `[Actual measured result]` |
+| Shelf-action research mode | Delivered (research) | `merl_shelf_actions_research_v1` profile: upload → MERL features (bit-identical to training) → causal TCN → episodes → evidence → reviewer action feedback; job timeline UI; Research insights page. See `docs/final-report.md` |
+| Tests | Delivered | 151 backend, 61 frontend, production build, browser checks `[Actual measured result]` |
 | Documentation | Delivered | README, architecture, API, models, data, evaluation, runbook, this status |
 
 ## Phase status
@@ -37,7 +38,7 @@ Provenance labels: `[Publisher metadata]`, `[Proposed target]`, `[Illustrative a
 | 3. Durable jobs, API, review UI | Complete baseline | Functional E2E; auth/retention gaps below |
 | 4. Retail detection | Blocked | No product bounding-box labels (MERL has action intervals only), trained checkpoint, or evaluation |
 | 5. Pose | Blocked | No installed/approved checkpoint; CPU feasibility unmeasured |
-| 6. Temporal features and TCN | **Research model trained** | MERL Shopping causal TCN: test frame mAP 0.592 (chance 0.154, no-context baseline 0.450), segment mAP@0.5 0.289. `development_only`, not enabled in the runtime, uncalibrated; covers shelf interactions only |
+| 6. Temporal features and TCN | **Research model integrated (research mode)** | MERL Shopping causal TCN: test frame mAP 0.592 (chance 0.154, no-context baseline 0.450), segment mAP@0.5 0.289 (0.304 with the validation-chosen runtime policy). Enabled only for the `merl_shelf_actions_research_v1` file profile; `development_only`, uncalibrated, shelf interactions only |
 | 7. RTSP and multi-camera | Deferred | Explicitly disabled; no credential or stream adapter |
 | 8. Exports, deletion-status resource, legal hold | Not implemented | Deletion is a local tombstone; no export pipeline |
 | 9. Commercial hardening | Not started | Packaging, service units, multi-user roles, formal accessibility/security review |
@@ -62,7 +63,7 @@ Provenance labels: `[Publisher metadata]`, `[Proposed target]`, `[Illustrative a
 - **Commercial person checkpoint rights.** The COCO-derived TorchVision weights are `development_only`; commercial release approval is unresolved.
 - **Approved retail detector.** No trained artifact, no visible-product/bag/basket labels, no rights decision.
 - **Pose checkpoint.** Reference manifest only; checkpoint absent; CPU feasibility unknown.
-- **Temporal model.** A research checkpoint exists (MERL, `development_only`), but there is no calibration, no `shop_features_v1` extractor (pose is absent), no own-footage evaluation, and no runtime integration.
+- **Temporal model.** The MERL research checkpoint is integrated for file uploads in research mode (`merl_features_v1`, not `shop_features_v1`). Still missing: calibration, own-footage evaluation (protocol ready in `docs/own-evaluation.md`), webcam/live support.
 - **Dataset manifests.** MERL Shopping has a dataset manifest (rights, MD5 per file, class mapping) and a split manifest. A Shop-specific own-footage dataset and its consent/purpose record do not exist.
 - **Store acceptance data.** No approved target-store footage, benign baseline, supported camera views, or action annotations.
 - **Privacy zone authoring.** Frames are masked from config, but there is no polygon editor, preview overlay, or per-source zone validation UI.
@@ -129,6 +130,15 @@ The evaluation fixture DB now contains upload `3b0ed65b-7b33-46ad-bb8e-5c7ef7328
 ## Bottom line
 
 The baseline demonstrates a trustworthy local review loop: CPU inference, honest descriptive events, reviewable evidence, append-only human decisions, and safe failure states. It does **not** demonstrate shoplifting detection accuracy, commercial model rights, retail detection, pose, temporal inference, or production-grade privacy administration. Those remain gated and must not be described as delivered.
+
+## Shelf-action research integration — 18 November 2026
+
+`[Actual measured result]`: 151 backend tests and 61 frontend tests pass; production build passes.
+Live demo (API + worker) on held-out MERL test video `30_1_crop.mp4`: 728/728 steps, 10 episodes, all
+with evidence, RTF 0.80–0.92 including evidence clips. Runtime features are bit-identical to training
+features on 4 held-out videos. CPU benchmark: feature extraction + TCN RTF 0.353 (i7-1065G7, 4 threads),
+446 MB peak. Error analysis, RetailAction pose-compatibility gate (failed; four blockers) and the own
+evaluation protocol are in `docs/final-report.md`. RetailAction remains disabled in the app.
 
 ## RetailAction T4 preparation — 18 November 2026
 

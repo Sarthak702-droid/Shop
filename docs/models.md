@@ -115,6 +115,15 @@ Missing values are zero-filled only after the associated validity mask is zero. 
 
 A randomly initialized TCN is never exposed as predictions or probabilities. Enabling it requires approved labelled data, frozen features, training/validation/test splits by recording group, calibration, CPU evaluation, event-level ablation against the descriptive policy, and a manifest with the checkpoint hash and feature-schema hash. Any feature order/shape change requires a new feature version and retraining.
 
+## MERL shelf-action TCN (research mode)
+
+Manifest `ml/manifests/merl_action_tcn_dev.json` (toggle `models.temporal`). Weights at
+`var/models/merl_tcn_v1/model.pt`, SHA-256 `af66b3cb…a003`, fetched and verified by
+`scripts/models/fetch_merl_tcn.sh`. `development_only` (MERL research/education licence).
+It is loaded lazily by the worker for `merl_shelf_actions_research_v1` jobs only, with its own SSDLite
+copy (score floor 0.15). Bundle label: `merl_action_tcn_v1:<run>|person:<detector version>|merl_action_episodes_v1`.
+Results: `docs/final-report.md`.
+
 ## Model bundle identity
 
 Jobs and events store a bundle string:

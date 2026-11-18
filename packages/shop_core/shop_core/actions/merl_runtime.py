@@ -45,7 +45,7 @@ class EpisodePolicy:
     merge_gap_steps: int = 1  # bridge one-step dropouts inside a class run
     episode_gap_ms: int = 1000  # actions closer than this form one interaction episode
     max_episode_ms: int = 20000  # split very long runs so evidence stays reviewable
-    context_ms: int = 3000  # evidence context before and after an episode
+    context_ms: int = 2000  # evidence context before and after an episode
     low_visibility_fraction: float = 0.4
 
 
@@ -185,15 +185,18 @@ def build_episodes(
 ) -> list[Episode]:
     segments: list[ActionSegment] = []
     total = len(probs)
+    max_steps = max(1, int(round(policy.max_episode_ms / step_ms)))
     for k, label in enumerate(classes):
-        for s, e in class_segments(probs[:, k], float(thresholds[k]), policy):
+        runs = class_segments(probs[:, k], float(thresholds[k]), policy)
+        # A single very long run (e.g. a hand resting in the shelf) is cut into reviewable chunks.
+        chunks = [(c, min(e, c + max_steps - 1)) for s, e in runs for c in range(s, e + 1, max_steps)]
+        for s, e in chunks:
             window = probs[s : e + 1, k]
             end_ms = int(pts_ms[e + 1]) if e + 1 < total else int(pts_ms[e] + step_ms)
             segments.append(ActionSegment(label, s, e, int(pts_ms[s]), end_ms, float(window.max()), float(window.mean()), float(thresholds[k])))
     segments.sort(key=lambda a: (a.start_step, a.end_step))
     episodes: list[Episode] = []
     gap_steps = max(0, int(round(policy.episode_gap_ms / step_ms)))
-    max_steps = max(1, int(round(policy.max_episode_ms / step_ms)))
     group: list[ActionSegment] = []
     g_end = -1
     for seg in segments:

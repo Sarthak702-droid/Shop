@@ -253,3 +253,17 @@ These PRD endpoints are not implemented in this baseline:
 - Role-separated authorization beyond the local reviewer allowlist.
 
 `DELETE /events/{id}` returns the resulting tombstone state directly; retention maintenance is the current deletion-status mechanism. See [Status](status.md).
+
+## Shelf-action research mode (added 18 Nov 2026)
+
+| Method | Path | Notes |
+| --- | --- | --- |
+| `POST` | `/jobs` | `analysis_profile: "merl_shelf_actions_research_v1"` (file sources only; 422 `ANALYSIS_PROFILE_SOURCE_UNSUPPORTED` for webcams; 503 `ACTION_MODEL_UNAVAILABLE` if the checkpoint fails its checks) |
+| `GET` | `/jobs/{id}/action-timeline` | Per-step scores (`shop_action_timeline_v1`): classes, thresholds, `pts_ms`, `scores[K][T]`, `person_present`, episodes. 404 for baseline jobs, 409 until completed, 410 if the file is gone, 500 on SHA-256 mismatch |
+| `GET` | `/events?event_type=shelf_interaction_observed` | Filter by event type |
+| `POST` | `/events/{id}/reviews` | Optional `action_feedback: {verdict: correct\|partially_correct\|incorrect\|no_interaction\|unclear, observed_actions: [...]}`. Only for shelf-interaction events (422 `ACTION_FEEDBACK_NOT_APPLICABLE` otherwise) |
+| `GET` | `/research/insights` | Committed `ml/results/*` (MERL analysis, CPU benchmark, runtime parity, RetailAction status, pose gate, own evaluation) and live aggregates: research jobs, warnings, reviewer precision with Wilson 95% intervals |
+
+Shelf events carry `actions: [{label, start_ms, end_ms, mean_score, peak_score, threshold, score_semantics}]`.
+`review_score` stays `null`; action scores are `uncalibrated_action_score`. Job `coverage.action_analysis` holds
+the model identity, input properties, warnings, per-class summary and stage timing.
