@@ -150,11 +150,34 @@ def test_missing_artifact_and_disabled_modules_are_unavailable(settings) -> None
     finally:
         path.unlink(missing_ok=True)
 
-    for toggle in ("retail_detector", "pose", "temporal"):
+    for toggle in ("retail_detector", "pose"):
         status = inspect_model(settings, toggle)
         assert status.enabled is False
         assert status.available is False
         assert status.reason == "Module is disabled by configuration."
+
+    settings.models.temporal.enabled = False
+    status = inspect_model(settings, "temporal")
+    assert status.available is False
+    assert status.reason == "Module is disabled by configuration."
+
+
+def test_shelf_action_checkpoint_hash_mismatch_fails_closed(settings) -> None:
+    manifest = json.loads((MANIFESTS / "merl_action_tcn_dev.json").read_text())
+    fake = PROJECT_ROOT / "var" / "test-runs" / "fake-merl.pt"
+    path = PROJECT_ROOT / "var" / "test-runs" / "merl-hash.json"
+    fake.parent.mkdir(parents=True, exist_ok=True)
+    fake.write_bytes(b"not a checkpoint")
+    manifest["weights"]["path"] = "var/test-runs/fake-merl.pt"
+    path.write_text(json.dumps(manifest), encoding="utf-8")
+    try:
+        settings.models.temporal.manifest = str(path)
+        status = inspect_model(settings, "temporal")
+        assert status.available is False
+        assert status.details["code"] == "MODEL_HASH_MISMATCH"
+    finally:
+        path.unlink(missing_ok=True)
+        fake.unlink(missing_ok=True)
 
 
 def test_cpu_runtime_verification_is_explicit() -> None:

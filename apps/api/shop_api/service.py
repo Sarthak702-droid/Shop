@@ -32,6 +32,8 @@ from shop_core.registry import ModelStatus, host_profile, inspect_model, sha256_
 
 APP_VERSION = "0.1.0"
 ANALYSIS_PROFILE = "cpu_baseline_v1"
+ACTION_PROFILE = "merl_shelf_actions_research_v1"
+ANALYSIS_PROFILES = (ANALYSIS_PROFILE, ACTION_PROFILE)
 MAX_PAGE_SIZE = 100
 
 
@@ -59,6 +61,25 @@ class AppContext:
     def model_bundle(self) -> str:
         person = self.models()["person_detector"]
         return f"{person.model_id}:{person.version}|policy:{self.settings.policy.version}"
+
+    def action_bundle(self) -> str:
+        temporal = self.models()["temporal"]
+        person = self.models()["person_detector"]
+        return f"{temporal.model_id}:{temporal.version}|{person.model_id}:{person.version}|policy:merl_action_episodes_v1"[:100]
+
+    def require_action_model(self) -> ModelStatus:
+        status = self.models()["temporal"]
+        if not status.available:
+            from shop_api.errors import ApiError
+
+            raise ApiError(
+                503,
+                "ACTION_MODEL_UNAVAILABLE",
+                "Shelf-action research analysis is unavailable because its checkpoint failed its checks.",
+                retryable=False,
+                details={"reason": status.reason, "code": status.details.get("code")},
+            )
+        return status
 
     def require_person_model(self) -> ModelStatus:
         status = self.models()["person_detector"]
@@ -168,6 +189,7 @@ def event_api(row: EventRow, *, include_reviews: bool = False) -> dict[str, Any]
         "quality": row.quality or {},
         "required_evidence": row.required_evidence or [],
         "available_evidence": row.available_evidence or [],
+        "actions": row.actions or [],
         "evidence": {
             "status": row.evidence_status,
             "clip_id": row.evidence_id,
@@ -196,6 +218,7 @@ def review_api(row: ReviewRow) -> dict[str, Any]:
         "decision": row.decision,
         "reason_codes": row.reason_codes or [],
         "notes": row.notes,
+        "action_feedback": row.action_feedback,
         "supersedes_review_id": row.supersedes_review_id,
         "created_at": iso(row.created_at),
     }
@@ -393,6 +416,37 @@ def model_capability_payload(context: AppContext) -> dict[str, Any]:
     }
 
 
+def analysis_profiles_payload(context: AppContext) -> list[dict[str, Any]]:
+    temporal = context.models()["temporal"]
+    person = context.models()["person_detector"]
+    return [
+        {
+            "profile": ANALYSIS_PROFILE,
+            "label": "Person activity (baseline)",
+            "available": person.available,
+            "sources": ["file", "webcam"],
+            "event_type": "person_activity_observed",
+            "research_mode": False,
+            "detail": "Detects and tracks people at 5 Hz and publishes descriptive dwell segments.",
+        },
+        {
+            "profile": ACTION_PROFILE,
+            "label": "Shelf actions (MERL research model)",
+            "available": person.available and temporal.available,
+            "sources": ["file"],
+            "event_type": "shelf_interaction_observed",
+            "research_mode": True,
+            "classes": temporal.details.get("class_order"),
+            "model": f"{temporal.model_id}:{temporal.version}",
+            "reason": None if temporal.available else temporal.reason,
+            "detail": (
+                "Causal TCN over merl_features_v1 predicts five observable shelf interactions. Trained on one "
+                "overhead mock-store camera; uncalibrated scores; never a theft or intent score."
+            ),
+        },
+    ]
+
+
 def capabilities_payload(context: AppContext) -> dict[str, Any]:
     settings = context.settings
     cpu = verify_cpu_runtime()
@@ -426,6 +480,7 @@ def capabilities_payload(context: AppContext) -> dict[str, Any]:
             "evidence_retention_days": settings.storage.evidence_days,
             "metadata_retention_days": settings.storage.metadata_days,
             "analysis_profile": ANALYSIS_PROFILE,
+            "analysis_profiles": analysis_profiles_payload(context),
             "label": "proposed_starting_setting",
         },
         "security": {

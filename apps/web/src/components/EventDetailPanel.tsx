@@ -18,9 +18,11 @@ import {
   reasonLabel,
   reviewDecisionLabel,
   reviewStateLabel,
+  actionVerdictLabel,
 } from '../lib/format'
 import { useApiResource, useBlobUrl } from '../lib/hooks'
-import type { EventSummary, ReviewDecision } from '../lib/types'
+import { ACTION_LABELS, type ActionLabel, type ActionVerdict, type EventSummary, type ReviewDecision } from '../lib/types'
+import { ACTION_COLORS } from './Charts'
 import {
   DataRow,
   EmptyState,
@@ -171,6 +173,18 @@ function EvidencePlayer({ event }: { event: EventSummary }) {
           <span className="timeline-context" style={{ left: 0, width: `${eventStartPct}%` }} />
           <span className="timeline-event" style={{ left: `${eventStartPct}%`, width: `${Math.max(1, eventEndPct - eventStartPct)}%` }} />
           <span className="timeline-context" style={{ left: `${eventEndPct}%`, right: 0 }} />
+          {(event.actions ?? []).map((action, index) => {
+            const left = Math.max(0, Math.min(100, ((action.start_ms - clipStart) / clipSpan) * 100))
+            const right = Math.max(left, Math.min(100, ((action.end_ms - clipStart) / clipSpan) * 100))
+            return (
+              <span
+                key={index}
+                className="timeline-action"
+                style={{ left: `${left}%`, width: `${Math.max(0.8, right - left)}%`, background: ACTION_COLORS[action.label] }}
+                title={`${reasonLabel(action.label)} ${formatMediaTime(action.start_ms)}–${formatMediaTime(action.end_ms)}`}
+              />
+            )
+          })}
         </div>
         <div className="timeline-labels timeline-labels--meta">
           <span>clip {formatMediaTime(clipStart)}–{formatMediaTime(clipEnd)}</span>
@@ -178,6 +192,74 @@ function EvidencePlayer({ event }: { event: EventSummary }) {
         </div>
       </div>
     </div>
+  )
+}
+
+const VERDICTS: Array<{ value: ActionVerdict; hint: string }> = [
+  { value: 'correct', hint: 'Every predicted action is visible in the clip.' },
+  { value: 'partially_correct', hint: 'Some predicted actions are right; tick what you actually saw.' },
+  { value: 'incorrect', hint: 'A shelf interaction happened, but not the predicted actions.' },
+  { value: 'no_interaction', hint: 'Nobody interacted with the shelf in this interval.' },
+  { value: 'unclear', hint: 'Occlusion, angle or quality prevents a judgement.' },
+]
+
+function PredictedActions({ event }: { event: EventSummary }) {
+  const actions = event.actions ?? []
+  if (!actions.length) return null
+  const start = event.media_interval_ms.start
+  const span = Math.max(1, event.media_interval_ms.end - start)
+  const visible = typeof event.quality.person_visible_fraction === 'number' ? event.quality.person_visible_fraction : null
+  return (
+    <section className="panel detail-panel predicted-actions">
+      <div className="history-heading">
+        <h3>Predicted shelf actions</h3>
+        <StatusPill tone="review">Research model</StatusPill>
+      </div>
+      <p className="field__hint">
+        Scores are uncalibrated outputs of the MERL causal TCN, compared with thresholds chosen on validation data. They describe
+        observable movement only, never intent.
+      </p>
+      <div className="action-gantt" role="img" aria-label="Predicted actions within this episode">
+        {actions.map((action, index) => (
+          <div className="action-gantt__row" key={index}>
+            <span className="action-gantt__label">{reasonLabel(action.label)}</span>
+            <span className="action-gantt__track">
+              <span
+                className="action-gantt__bar"
+                style={{
+                  left: `${((action.start_ms - start) / span) * 100}%`,
+                  width: `${Math.max(2, ((action.end_ms - action.start_ms) / span) * 100)}%`,
+                  background: ACTION_COLORS[action.label],
+                }}
+              />
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="table-scroll">
+        <table className="data-table">
+          <thead><tr><th>Action</th><th>Media time</th><th>Duration</th><th>Mean score</th><th>Peak</th><th>Threshold</th></tr></thead>
+          <tbody>
+            {actions.map((action, index) => (
+              <tr key={index}>
+                <td><span className="chart-legend__swatch" style={{ background: ACTION_COLORS[action.label] }} aria-hidden="true" /> {reasonLabel(action.label)}</td>
+                <td>{formatMediaTime(action.start_ms)}–{formatMediaTime(action.end_ms)}</td>
+                <td>{formatDuration(action.end_ms - action.start_ms)}</td>
+                <td>{action.mean_score.toFixed(2)}</td>
+                <td>{action.peak_score?.toFixed(2) ?? '—'}</td>
+                <td>{action.threshold?.toFixed(2) ?? '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <dl className="data-grid data-grid--compact">
+        <DataRow label="Primary action">{typeof event.quality.primary_action === 'string' ? reasonLabel(event.quality.primary_action) : '—'}</DataRow>
+        <DataRow label="Person visible">{visible === null ? '—' : `${Math.round(visible * 100)}% of the episode`}</DataRow>
+        <DataRow label="Model / version"><code className="breakable">{event.model_bundle}</code></DataRow>
+        <DataRow label="Episode policy">{event.policy_version}</DataRow>
+      </dl>
+    </section>
   )
 }
 
@@ -196,6 +278,10 @@ function ReviewComposer({
     previous?.reason_codes.length ? [...previous.reason_codes] : ['activity_benign'],
   )
   const [notes, setNotes] = useState('')
+  const shelfEvent = event.event_type === 'shelf_interaction_observed'
+  const predicted = useMemo(() => [...new Set((event.actions ?? []).map((a) => a.label))], [event.actions])
+  const [verdict, setVerdict] = useState<ActionVerdict | null>(previous?.action_feedback?.verdict ?? null)
+  const [observed, setObserved] = useState<ActionLabel[]>(previous?.action_feedback?.observed_actions ?? predicted)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const [saved, setSaved] = useState(false)
@@ -204,7 +290,17 @@ function ReviewComposer({
   useEffect(() => {
     setDecision(previous?.decision ?? 'benign')
     setReasons(previous?.reason_codes.length ? [...previous.reason_codes] : ['activity_benign'])
+    setVerdict(previous?.action_feedback?.verdict ?? null)
+    setObserved(previous?.action_feedback?.observed_actions ?? predicted)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event.event_id, previous?.review_id])
+
+  const chooseVerdict = (value: ActionVerdict) => {
+    setVerdict(value)
+    setSaved(false)
+    if (value === 'correct') setObserved(predicted)
+    if (value === 'no_interaction' || value === 'unclear') setObserved([])
+  }
 
   const applyDecision = (value: ReviewDecision) => {
     const option = DECISIONS.find((item) => item.value === value)
@@ -228,6 +324,10 @@ function ReviewComposer({
       setError(new Error('Choose at least one reason or add a short note.'))
       return
     }
+    if (shelfEvent && !verdict) {
+      setError(new Error('Say whether the predicted shelf actions match the clip. This feedback measures the research model.'))
+      return
+    }
     setSubmitting(true)
     try {
       await apiPost(
@@ -237,6 +337,9 @@ function ReviewComposer({
           reason_codes: reasons,
           notes: notes.slice(0, 2000),
           supersedes_review_id: previous?.review_id ?? null,
+          ...(shelfEvent && verdict
+            ? { action_feedback: { verdict, observed_actions: verdict === 'no_interaction' || verdict === 'unclear' ? [] : observed } }
+            : {}),
         },
         { 'Idempotency-Key': newIdempotencyKey() },
       )
@@ -279,6 +382,39 @@ function ReviewComposer({
           </button>
         ))}
       </div>
+
+      {shelfEvent && (
+        <fieldset className="action-feedback">
+          <legend>Do the predicted actions match the clip?</legend>
+          <p className="field__hint">Your answer is the ground truth used to measure the research model on real footage (Research insights page).</p>
+          <div className="verdict-grid" role="radiogroup" aria-label="Action prediction verdict">
+            {VERDICTS.map((option) => (
+              <label key={option.value} className={`verdict-option${verdict === option.value ? ' verdict-option--selected' : ''}`}>
+                <input type="radio" name={`verdict-${event.event_id}`} checked={verdict === option.value} onChange={() => chooseVerdict(option.value)} />
+                <span><strong>{actionVerdictLabel(option.value)}</strong><small>{option.hint}</small></span>
+              </label>
+            ))}
+          </div>
+          {(verdict === 'partially_correct' || verdict === 'incorrect' || verdict === 'correct') && (
+            <div className="checkbox-grid">
+              <p className="field__hint">Actions you actually observed (predicted ones are marked):</p>
+              {ACTION_LABELS.map((label) => (
+                <label className="checkbox-row" key={label}>
+                  <input
+                    type="checkbox"
+                    checked={observed.includes(label)}
+                    onChange={() => setObserved((current) => current.includes(label) ? current.filter((l) => l !== label) : [...current, label])}
+                  />
+                  <span>
+                    <span className="chart-legend__swatch" style={{ background: ACTION_COLORS[label] }} aria-hidden="true" /> {reasonLabel(label)}
+                    {predicted.includes(label) && <small className="text-muted"> · predicted</small>}
+                  </span>
+                </label>
+              ))}
+            </div>
+          )}
+        </fieldset>
+      )}
 
       <div className="review-form-grid">
         <fieldset className="reason-fieldset">
@@ -424,11 +560,13 @@ export function EventDetailPanel({
       </div>
 
       <InlineNotice tone="neutral" title="Observed activity, not a conclusion">
-        The baseline reports a person track and its context. It does not establish intent, ownership, payment or
-        whether a theft occurred. Reviewers may find a benign explanation or mark the evidence inconclusive.
+        {event.event_type === 'shelf_interaction_observed'
+          ? 'A research model predicted shelf interactions (reaching, retracting, inspecting) in this interval. Shelf interactions are normal shopping. The prediction does not establish intent, ownership, payment or whether a theft occurred.'
+          : 'The baseline reports a person track and its context. It does not establish intent, ownership, payment or whether a theft occurred. Reviewers may find a benign explanation or mark the evidence inconclusive.'}
       </InlineNotice>
 
       <EvidencePlayer event={event} />
+      <PredictedActions event={event} />
 
       <div className="detail-grid">
         <section className="panel detail-panel">
@@ -500,8 +638,9 @@ export function EventDetailPanel({
             <IconShield />
           </div>
           <p className="score-explanation">
-            The baseline policy does not calculate an activity probability. The stored score is
-            <code> null</code>, not zero. No uncalibrated number is presented as risk.
+            {event.event_type === 'shelf_interaction_observed'
+              ? 'Action scores above are uncalibrated and describe movement only. No review or risk score is computed; the stored score is null, not zero.'
+              : <>The baseline policy does not calculate an activity probability. The stored score is<code> null</code>, not zero. No uncalibrated number is presented as risk.</>}
           </p>
           <div className="review-history">
             <div className="history-heading">
@@ -521,6 +660,12 @@ export function EventDetailPanel({
                       <p className="history-actor">{review.actor}</p>
                       {review.reason_codes.length > 0 && (
                         <p className="history-reasons">{review.reason_codes.map(reasonLabel).join(' · ')}</p>
+                      )}
+                      {review.action_feedback && (
+                        <p className="history-reasons">
+                          Actions: {actionVerdictLabel(review.action_feedback.verdict)}
+                          {review.action_feedback.observed_actions.length > 0 && ` · saw ${review.action_feedback.observed_actions.map(reasonLabel).join(', ')}`}
+                        </p>
                       )}
                       {review.notes && <p className="history-notes">{review.notes}</p>}
                       {review.supersedes_review_id && (

@@ -1,0 +1,82 @@
+{
+ "schema": "shop_runtime_e2e_v1",
+ "videos": [
+  {
+   "video": "27_2_crop.mp4",
+   "frames": 4087,
+   "steps": 682,
+   "media_seconds": 136.2,
+   "feature_parity_with_training": true,
+   "max_abs_feature_diff": 0.0,
+   "frame_map": 0.7144,
+   "episodes": 8,
+   "gt_intervals": 52,
+   "person_visible_fraction": 0.824,
+   "timing_ms": {
+    "features_wall": 42332.7,
+    "decode": 4829.3,
+    "detect": 34210.9,
+    "motion": 297.2,
+    "tcn": 17.5,
+    "episodes": 1.95
+   },
+   "real_time_factor": 0.311,
+   "steps_per_second": 16.1
+  },
+  {
+   "video": "33_1_crop.mp4",
+   "frames": 3862,
+   "steps": 644,
+   "media_seconds": 128.7,
+   "feature_parity_with_training": true,
+   "max_abs_feature_diff": 0.0,
+   "frame_map": 0.643,
+   "episodes": 8,
+   "gt_intervals": 55,
+   "person_visible_fraction": 0.648,
+   "timing_ms": {
+    "features_wall": 46885.6,
+    "decode": 5299.2,
+    "detect": 37912.5,
+    "motion": 323.7,
+    "tcn": 16.0,
+    "episodes": 2.1
+   },
+   "real_time_factor": 0.364,
+   "steps_per_second": 13.73
+  },
+  {
+   "video": "39_1_crop.mp4",
+   "frames": 3980,
+   "steps": 664,
+   "media_seconds": 132.7,
+   "feature_parity_with_training": true,
+   "max_abs_feature_diff": 0.0,
+   "frame_map": 0.6914,
+   "episodes": 7,
+   "gt_intervals": 48,
+   "person_visible_fraction": 0.756,
+   "timing_ms": {
+    "features_wall": 50774.0,
+    "decode": 5723.8,
+    "detect": 41050.8,
+    "motion": 354.2,
+    "tcn": 11.6,
+    "episodes": 1.43
+   },
+   "real_time_factor": 0.383,
+   "steps_per_second": 13.07
+  }
+ ],
+ "all_parity": true,
+ "pooled_frame_ap": {
+  "reach_to_shelf": 0.6731,
+  "retract_from_shelf": 0.7191,
+  "hand_in_shelf": 0.477,
+  "inspect_product": 0.6854,
+  "inspect_shelf": 0.7612
+ },
+ "pooled_frame_map": 0.6632,
+ "note": "Held-out MERL test videos through the runtime path. Small sample; the 28-video test numbers in analysis.json are authoritative.",
+ "label": "actual_measured_result"
+}

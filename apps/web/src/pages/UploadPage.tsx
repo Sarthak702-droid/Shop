@@ -12,9 +12,11 @@ import {
   formatDateTime,
   formatDuration,
   formatPercent,
+  reasonLabel,
 } from '../lib/format'
 import { useApiResource } from '../lib/hooks'
 import type {
+  AnalysisProfileInfo,
   Capabilities,
   ConfigResponse,
   JobResponse,
@@ -106,7 +108,12 @@ export function UploadPage() {
 
   const maxBytes = Number(capabilities.data?.limits.max_upload_bytes ?? 0)
   const maxFps = Number(capabilities.data?.limits.sampling_fps_max ?? 5)
-  const analysisProfile = String(capabilities.data?.limits.analysis_profile ?? 'cpu_baseline_v1')
+  const defaultProfile = String(capabilities.data?.limits.analysis_profile ?? 'cpu_baseline_v1')
+  const profiles = (capabilities.data?.limits.analysis_profiles as AnalysisProfileInfo[] | undefined) ?? []
+  const [profileChoice, setProfileChoice] = useState<string | null>(null)
+  const analysisProfile = profileChoice ?? defaultProfile
+  const selectedProfile = profiles.find((item) => item.profile === analysisProfile)
+  const actionProfile = Boolean(selectedProfile?.research_mode)
   const zoneVersion = config.data?.zones.version ?? ''
   const fpsOptions = useMemo(
     () => [1, 2, 3, 5, 10, 15].filter((value) => value <= maxFps),
@@ -191,7 +198,8 @@ export function UploadPage() {
         {
           source: { kind: 'file', upload_id: selectedUpload.upload_id },
           analysis_profile: analysisProfile,
-          sampling_fps: Number(samplingFps),
+          // The shelf-action model is defined at 5 Hz steps; its cadence is not user-selectable.
+          sampling_fps: actionProfile ? 5 : Number(samplingFps),
           privacy_mask_version: zoneVersion,
           retain_evidence: retainEvidence,
         },
@@ -369,20 +377,59 @@ export function UploadPage() {
             </div>
           ) : (
             <div className="analysis-form">
-              <Field
-                label="Sampling cadence"
-                htmlFor="sampling-fps"
-                hint={`Maximum configured cadence is ${maxFps} fps. Lower cadence uses less CPU and can miss brief activity.`}
-              >
-                <select id="sampling-fps" value={samplingFps} onChange={(event) => setSamplingFps(event.target.value)}>
-                  {fpsOptions.map((value) => (
-                    <option key={value} value={String(value)}>{value} fps</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Analysis profile" htmlFor="analysis-profile" hint="Only the local CPU baseline profile is registered in this build.">
-                <input id="analysis-profile" value={analysisProfile} readOnly />
-              </Field>
+              <fieldset className="profile-picker">
+                <legend>Analysis profile</legend>
+                {(profiles.length ? profiles : [{ profile: defaultProfile, label: 'Person activity (baseline)', available: true, sources: ['file'], event_type: 'person_activity_observed', research_mode: false, detail: '' }]).map((item) => (
+                  <label
+                    key={item.profile}
+                    className={`profile-option${analysisProfile === item.profile ? ' profile-option--selected' : ''}${item.available ? '' : ' profile-option--disabled'}`}
+                  >
+                    <input
+                      type="radio"
+                      name="analysis-profile"
+                      value={item.profile}
+                      checked={analysisProfile === item.profile}
+                      disabled={!item.available}
+                      onChange={() => setProfileChoice(item.profile)}
+                    />
+                    <span className="profile-option__body">
+                      <span className="profile-option__title">
+                        {item.label}
+                        {item.research_mode && <StatusPill tone="review">Research mode</StatusPill>}
+                        {!item.available && <StatusPill tone="muted">Unavailable</StatusPill>}
+                      </span>
+                      <small>{item.detail}</small>
+                      {item.research_mode && item.classes && (
+                        <span className="chip-row">
+                          {item.classes.map((label) => <span className="chip" key={label}>{reasonLabel(label)}</span>)}
+                        </span>
+                      )}
+                      {!item.available && item.reason && <small className="text-danger">{item.reason}</small>}
+                      <code className="profile-option__id">{item.profile}</code>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+              {!actionProfile && (
+                <Field
+                  label="Sampling cadence"
+                  htmlFor="sampling-fps"
+                  hint={`Maximum configured cadence is ${maxFps} fps. Lower cadence uses less CPU and can miss brief activity.`}
+                >
+                  <select id="sampling-fps" value={samplingFps} onChange={(event) => setSamplingFps(event.target.value)}>
+                    {fpsOptions.map((value) => (
+                      <option key={value} value={String(value)}>{value} fps</option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+              {actionProfile && (
+                <InlineNotice tone="review" title="Research model: read results as observations, not findings">
+                  The MERL shelf-action model was trained on one overhead camera in a mock store. It analyses 5 Hz steps
+                  using every decoded frame, reports uncalibrated scores for five shelf interactions, and warns when the
+                  frame rate, aspect ratio or person visibility differ from training. Expect roughly real-time CPU cost.
+                </InlineNotice>
+              )}
               <Field label="Privacy mask version" htmlFor="zone-version" hint="Read from the active local configuration. Zone editing is not exposed in this build.">
                 <input id="zone-version" value={zoneVersion || 'Loading…'} readOnly />
               </Field>
@@ -401,8 +448,9 @@ export function UploadPage() {
               <div className="analysis-summary">
                 <IconShield />
                 <p>
-                  The baseline reports confirmed person tracks as descriptive activity segments. It does not score
-                  theft, identify people or infer intent. A reviewer decides what the context means.
+                  {actionProfile
+                    ? 'Shelf-action analysis groups predicted reaches, retracts and inspections into short interaction episodes with evidence clips. It never scores theft, identifies people or infers intent. A reviewer confirms or corrects each predicted action.'
+                    : 'The baseline reports confirmed person tracks as descriptive activity segments. It does not score theft, identify people or infer intent. A reviewer decides what the context means.'}
                 </p>
               </div>
 
@@ -418,7 +466,7 @@ export function UploadPage() {
                 disabled={starting || !zoneVersion}
                 onClick={() => void startAnalysis()}
               >
-                {starting ? 'Creating local job…' : 'Queue CPU analysis'}
+                {starting ? 'Creating local job…' : actionProfile ? 'Queue shelf-action analysis' : 'Queue CPU analysis'}
               </button>
               <p className="small text-muted center-copy">
                 A separate local worker processes the job. You can leave this page; progress is durable in SQLite.

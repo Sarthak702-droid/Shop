@@ -97,6 +97,20 @@ export function reasonLabel(reason: string): string {
     item_visibility_lost: 'Item visibility lost',
     hand_near_bag: 'Hand near bag',
     reach_to_shelf: 'Reach to shelf',
+    retract_from_shelf: 'Retract from shelf',
+    hand_in_shelf: 'Hand in shelf',
+    inspect_product: 'Inspect product',
+    inspect_shelf: 'Inspect shelf',
+    insufficient_person_visibility: 'Person not visible for most of the episode',
+    limited_temporal_context: 'Less than 12 s of preceding context',
+    insufficient_visibility: 'Low person visibility across the video',
+    frame_rate_differs: 'Frame rate differs from training (30 fps)',
+    aspect_ratio_differs: 'Aspect ratio differs from training',
+    short_video: 'Video shorter than model context',
+    research_model_domain: 'Research model outside its training view',
+    action_timeline: 'Action score timeline',
+    person_box: 'Person box',
+    clip_with_context: 'Clip with context',
     product_pickup_observed: 'Product pickup observed',
     return_to_shelf: 'Return to shelf',
     intermittent_track_observations: 'Intermittent track observations',
@@ -110,11 +124,13 @@ export function reasonLabel(reason: string): string {
     equipment_fault: 'Equipment fault',
     other: 'Other',
   }
+  if (reason.startsWith('action:')) return labels[reason.slice(7)] ?? reason.slice(7).replaceAll('_', ' ')
   return labels[reason] ?? reason.replaceAll('_', ' ')
 }
 
 export function eventTypeLabel(value: string): string {
   if (value === 'person_activity_observed') return 'Person activity observed'
+  if (value === 'shelf_interaction_observed') return 'Shelf interaction observed'
   return value.replaceAll('_', ' ')
 }
 
@@ -165,4 +181,16 @@ export function clamp(value: number, min = 0, max = 1): number {
 
 export function formatTimestampQuery(value: string): string {
   return encodeURIComponent(value)
+}
+
+export function actionVerdictLabel(value: string): string {
+  return (
+    {
+      correct: 'Predicted actions correct',
+      partially_correct: 'Partly correct',
+      incorrect: 'Wrong actions',
+      no_interaction: 'No shelf interaction',
+      unclear: 'Cannot tell from clip',
+    } as Record<string, string>
+  )[value] ?? value.replaceAll('_', ' ')
 }

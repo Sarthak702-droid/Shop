@@ -67,6 +67,7 @@ export interface EventSummary {
   quality: EventQuality
   required_evidence: string[]
   available_evidence: string[]
+  actions?: ActionSegment[]
   evidence: EventEvidence
   model_bundle: string
   policy_version: string
@@ -78,6 +79,40 @@ export interface EventSummary {
   reviews?: Review[]
 }
 
+export type ActionLabel =
+  | 'reach_to_shelf'
+  | 'retract_from_shelf'
+  | 'hand_in_shelf'
+  | 'inspect_product'
+  | 'inspect_shelf'
+
+export const ACTION_LABELS: ActionLabel[] = [
+  'reach_to_shelf',
+  'retract_from_shelf',
+  'hand_in_shelf',
+  'inspect_product',
+  'inspect_shelf',
+]
+
+export interface ActionSegment {
+  label: ActionLabel
+  display?: string
+  start_ms: number
+  end_ms: number
+  steps?: number
+  peak_score?: number
+  mean_score: number
+  threshold?: number
+  score_semantics?: string
+}
+
+export type ActionVerdict = 'correct' | 'partially_correct' | 'incorrect' | 'no_interaction' | 'unclear'
+
+export interface ActionFeedback {
+  verdict: ActionVerdict
+  observed_actions: ActionLabel[]
+}
+
 export interface Review {
   review_id: string
   event_id: string
@@ -85,6 +120,7 @@ export interface Review {
   decision: ReviewDecision
   reason_codes: string[]
   notes: string
+  action_feedback?: ActionFeedback | null
   supersedes_review_id: string | null
   created_at: string
 }
@@ -367,4 +403,210 @@ export interface RetentionResponse {
   file_cleanup_failures: number
   applied_at: string
   request_id: string
+}
+
+export interface AnalysisProfileInfo {
+  profile: string
+  label: string
+  available: boolean
+  sources: string[]
+  event_type: string
+  research_mode: boolean
+  classes?: ActionLabel[] | null
+  model?: string
+  reason?: string | null
+  detail: string
+}
+
+export interface ActionWarning {
+  code: string
+  severity: 'info' | 'warning'
+  message: string
+}
+
+export interface ActionClassSummary {
+  segments: number
+  active_seconds: number
+  active_fraction: number
+  mean_score: number
+  max_score: number
+  per_minute: number
+}
+
+export interface ActionAnalysis {
+  profile: string
+  model: {
+    model_id: string
+    run: string
+    sha256: string
+    feature_schema: string
+    detector: string
+    policy: string
+    receptive_field_steps: number
+  }
+  input: { fps: number; frames: number; width: number; height: number; step_frames: number }
+  warnings: ActionWarning[]
+  summary: {
+    steps: number
+    analysed_seconds: number
+    episodes: number
+    person_visible_fraction: number
+    per_class: Record<ActionLabel, ActionClassSummary>
+    episodes_with_low_visibility: number
+  }
+  timeline: { path: string; sha256: string }
+  timing_ms: Record<string, number>
+  steps_per_second: number
+  label: string
+}
+
+export interface ActionTimeline {
+  schema: string
+  model: { model_id: string; run: string; sha256: string; feature_schema: string }
+  classes: ActionLabel[]
+  display: Record<string, string>
+  thresholds: number[]
+  step_ms: number
+  pts_ms: number[]
+  scores: number[][]
+  person_present: number[]
+  episodes: Array<{ start_ms: number; end_ms: number; primary: ActionLabel; actions: ActionSegment[] }>
+  policy: Record<string, number | string>
+  score_semantics: string
+}
+
+export interface ActionTimelineResponse {
+  job_id: string
+  timeline: ActionTimeline
+}
+
+export interface WilsonEstimate {
+  estimate: number | null
+  low: number | null
+  high: number | null
+  n: number
+}
+
+export interface ClassMetrics {
+  ap: number
+  chance?: number
+  precision: number
+  recall: number
+  f1: number
+  threshold?: number
+  support_steps?: number
+  predicted?: number
+  ground_truth?: number
+}
+
+export type PerClass<T> = Record<ActionLabel, T> & { _map?: number; _chance_map?: number }
+
+export interface ResearchInsights {
+  merl: {
+    available: boolean
+    reason?: string
+    run?: string
+    checkpoint_sha256?: string
+    split?: Record<string, number>
+    steps?: Record<string, number>
+    best_epoch?: number
+    training_curve?: Array<{ epoch: number; train_loss: number; val_map: number; val_ap: Record<ActionLabel, number> }>
+    class_stats?: { train: Record<ActionLabel, { segments: number; median_s: number | null; p10_s: number | null; steps: number }>; test: Record<ActionLabel, { segments: number; median_s: number | null; p10_s: number | null; steps: number }> }
+    validation?: { frame: PerClass<ClassMetrics>; segment_eval_policy: PerClass<ClassMetrics> }
+    test?: { frame: PerClass<ClassMetrics>; segment_eval_policy: PerClass<ClassMetrics>; segment_runtime_policy: PerClass<ClassMetrics> }
+    runtime_policy_selection?: { grid: Array<{ min_segment_steps: number; merge_gap_steps: number; val_segment_map: number }>; chosen: { min_segment_steps: number; merge_gap_steps: number; val_segment_map: number }; selected_on: string }
+    confusion_test?: { labels: string[]; counts: number[][]; row_normalised: number[][]; excluded_multi_label_steps: number }
+    visibility_test?: { person_present_fraction: number; person_visible: Record<string, number | null>; person_not_detected: Record<string, number | null> }
+    failures_test?: {
+      false_positives: Array<{ video: string; class: ActionLabel; start_s: number; end_s: number; mean_score: number; overlapping_gt: string[]; person_visible: number }>
+      missed: Array<{ video: string; class: ActionLabel; start_s: number; end_s: number; max_score: number; threshold: number; person_visible: number }>
+      false_positive_count: number
+      missed_count: number
+      missed_mean_person_visible: number | null
+      false_positive_with_other_gt_fraction: number | null
+    }
+    reliability_test?: Record<ActionLabel, { ece: number; bins: Array<{ bin: string; mean_score: number; positive_rate: number; steps: number }> }>
+    threshold_sweep_validation?: Record<ActionLabel, Array<{ threshold: number; precision: number; recall: number; f1: number }>>
+    per_video_test?: Array<{ video: string; map: number; steps: number; person_visible: number }>
+    baseline_no_context?: { run: string; frame_map: number; segment_map_iou_0_5: number } | null
+    model?: Record<string, unknown>
+    notes?: string[]
+  }
+  retailaction: {
+    available?: boolean
+    updated_utc?: string
+    classes?: string[]
+    steps?: Array<{ key: string; label: string; state: string }>
+    archives?: Array<{ name: string; bytes: number; verified: boolean }>
+    data?: {
+      train_source_clips: number | null
+      source_positive_clips: Record<string, number> | null
+      usable_positive_clips: Record<string, number> | null
+      quarantined_metadata: number
+      no_valid_pose_excluded: number | null
+    }
+    class_imbalance_note?: string
+    next_action?: string
+    runtime_enabled?: boolean
+  }
+  pose_compatibility: {
+    joint_mapping: { direct: string[]; derivable_as_midpoint: Record<string, string[]>; missing_in_coco17: string[]; action_critical_missing: string[]; coverage: number }
+    supplied_pose_semantics: { samples_read: number; joint_observations: number; fraction_on_1_64_grid: number | null; joint_score: Record<string, number>; joint_score_above_1_fraction: number | null; per_joint_present_fraction: Record<string, number | null> } | null
+    cpu_pose_timing: { model: string; input: string; threads: number; mean_ms: number; p95_ms: number; max_fps: number; realtime_at_5hz: boolean; peak_rss_kb: number } | null
+    verdict: { compatible: boolean; runtime_enabled: boolean; blockers: string[]; required_before_enabling: string[] }
+  } | null
+  own_evaluation: { available: boolean; reason?: string; [key: string]: unknown }
+  cpu_benchmark: {
+    host: { cpu: string; logical_cores: number; threads: number; python: string; torch: string }
+    model_load_ms: number
+    videos: number
+    media_seconds: number
+    real_time_factor: { mean: number; max: number }
+    per_step_ms: Record<string, number>
+    peak_rss_kb: number
+    budget: { step_ms_at_5hz: number }
+    note: string
+  } | null
+  runtime_e2e: {
+    videos: Array<{ video: string; media_seconds: number; feature_parity_with_training: boolean; frame_map: number; episodes: number; gt_intervals: number; person_visible_fraction: number; real_time_factor: number }>
+    all_parity: boolean
+    pooled_frame_map: number
+    note: string
+  } | null
+  app: {
+    jobs: Array<{
+      job_id: string
+      status: string
+      filename: string | null
+      created_at: string
+      analysed_seconds: number | null
+      episodes: number | null
+      person_visible_fraction: number | null
+      per_class: Record<ActionLabel, ActionClassSummary> | null
+      warnings: string[]
+      real_time_factor: number | null
+      wall_time_ms: number | null
+      peak_rss_kb: number | null
+      steps_per_second: number | null
+      error: { code: string; message: string } | null
+    }>
+    job_states: Record<string, number>
+    analysed_minutes: number
+    job_warnings: Record<string, number>
+    events: {
+      total: number
+      reviewed: number
+      with_action_feedback: number
+      decisions: Record<string, number>
+      verdicts: Record<string, number>
+      warnings: Record<string, number>
+      person_visibility_histogram: Array<{ bin: string; events: number }>
+      median_duration_ms: number | null
+    }
+    reviewer_precision: {
+      per_class: Record<ActionLabel, { predicted_events: number; confirmed: number; rejected: number; reviewer_added: number; precision: WilsonEstimate }>
+      overall: WilsonEstimate
+    }
+  }
+  action_model: { available: boolean; model_id: string; version: string; reason: string; commercial_status: string }
 }

@@ -73,7 +73,7 @@ def add_job(session, upload_id: str, **overrides) -> JobRow:
 def test_migration_installs_schema_and_version(db) -> None:
     head = database_head(db.engine)
     assert head is not None
-    assert head == "e8d95c8244d9"
+    assert head == "b7c1d2e3f4a5"
     with db.session() as session:
         assert session.execute(select(UploadRow)).scalars().all() == []
 

@@ -76,9 +76,11 @@ models:
   pose:
     enabled: false
     manifest: ml/manifests/pose_keypointrcnn_unavailable.json
+  # Research mode only: MERL shelf-action TCN, used by the merl_shelf_actions_research_v1 profile.
+  # development_only (MERL research/educational licence). Uncalibrated; never a theft score.
   temporal:
-    enabled: false
-    manifest: ml/manifests/temporal_tcn_untrained.json
+    enabled: true
+    manifest: ml/manifests/merl_action_tcn_dev.json
 
 zones:
   version: zones_default_v1

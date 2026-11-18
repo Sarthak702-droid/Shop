@@ -287,3 +287,5 @@ class EventRecord:
     review_state: Literal["unreviewed", "benign", "review_needed", "inconclusive"] = "unreviewed"
     evidence: EvidenceStatus = field(default_factory=lambda: EvidenceStatus(status="pending"))
     created_at_utc: str = ""
+    # Research shelf-action segments (``shelf_interaction_observed`` events only).
+    actions: list[dict[str, Any]] = field(default_factory=list)

@@ -1,0 +1,177 @@
+{
+ "schema": "shop_pose_compatibility_v1",
+ "joint_mapping": {
+  "retailaction_joints": [
+   "top_of_head",
+   "nose",
+   "neck",
+   "left_eye",
+   "right_eye",
+   "left_ear",
+   "right_ear",
+   "left_shoulder",
+   "right_shoulder",
+   "left_elbow",
+   "right_elbow",
+   "left_wrist",
+   "right_wrist",
+   "left_hand",
+   "right_hand",
+   "middle_of_waist",
+   "left_hip",
+   "right_hip",
+   "left_knee",
+   "right_knee",
+   "left_ankle",
+   "right_ankle",
+   "left_foot",
+   "right_foot"
+  ],
+  "coco17_joints": [
+   "nose",
+   "left_eye",
+   "right_eye",
+   "left_ear",
+   "right_ear",
+   "left_shoulder",
+   "right_shoulder",
+   "left_elbow",
+   "right_elbow",
+   "left_wrist",
+   "right_wrist",
+   "left_hip",
+   "right_hip",
+   "left_knee",
+   "right_knee",
+   "left_ankle",
+   "right_ankle"
+  ],
+  "direct": [
+   "nose",
+   "left_eye",
+   "right_eye",
+   "left_ear",
+   "right_ear",
+   "left_shoulder",
+   "right_shoulder",
+   "left_elbow",
+   "right_elbow",
+   "left_wrist",
+   "right_wrist",
+   "left_hip",
+   "right_hip",
+   "left_knee",
+   "right_knee",
+   "left_ankle",
+   "right_ankle"
+  ],
+  "derivable_as_midpoint": {
+   "neck": [
+    "left_shoulder",
+    "right_shoulder"
+   ],
+   "middle_of_waist": [
+    "left_hip",
+    "right_hip"
+   ]
+  },
+  "missing_in_coco17": [
+   "top_of_head",
+   "left_hand",
+   "right_hand",
+   "left_foot",
+   "right_foot"
+  ],
+  "action_critical_missing": [
+   "left_hand",
+   "right_hand"
+  ],
+  "coverage": 0.792
+ },
+ "supplied_pose_semantics": {
+  "archive": "train.tar",
+  "samples_read": 150,
+  "pose_observations": 8928,
+  "null_pose_observations": 102,
+  "joint_observations": 164339,
+  "coordinate_0": {
+   "p0": 0.0,
+   "p1": 0.1719,
+   "p50": 0.5,
+   "p99": 0.8125,
+   "p100": 0.9375
+  },
+  "coordinate_1": {
+   "p0": 0.0,
+   "p1": 0.1094,
+   "p50": 0.5,
+   "p99": 0.8125,
+   "p100": 0.9375
+  },
+  "fraction_on_1_64_grid": 0.9981,
+  "joint_score": {
+   "p0": 0.1,
+   "p1": 0.115,
+   "p50": 0.7666,
+   "p99": 1.0635,
+   "p100": 1.4756
+  },
+  "joint_score_above_1_fraction": 0.0512,
+  "per_joint_present_fraction": {
+   "top_of_head": 0.9919,
+   "nose": 0.3887,
+   "neck": 0.9987,
+   "left_eye": 0.2097,
+   "right_eye": 0.1978,
+   "left_ear": 0.1966,
+   "right_ear": 0.1844,
+   "left_shoulder": 0.9964,
+   "right_shoulder": 0.9978,
+   "left_elbow": 0.9181,
+   "right_elbow": 0.9064,
+   "left_wrist": 0.7825,
+   "right_wrist": 0.8059,
+   "left_hand": 0.7399,
+   "right_hand": 0.7709,
+   "middle_of_waist": 0.9996,
+   "left_hip": 0.9981,
+   "right_hip": 0.9965,
+   "left_knee": 0.9252,
+   "right_knee": 0.925,
+   "left_ankle": 0.8751,
+   "right_ankle": 0.872,
+   "left_foot": 0.8659,
+   "right_foot": 0.8642
+  }
+ },
+ "cpu_pose_timing": {
+  "model": "torchvision keypointrcnn_resnet50_fpn (random init; timing only)",
+  "input": "600x600",
+  "threads": 4,
+  "frames": 8,
+  "mean_ms": 2080.8,
+  "p50_ms": 1934.4,
+  "p95_ms": 2662.8,
+  "max_fps": 0.48,
+  "realtime_at_5hz": false,
+  "peak_rss_kb": 937644,
+  "cpu": "x86_64",
+  "label": "actual_measured_result"
+ },
+ "verdict": {
+  "compatible": false,
+  "runtime_enabled": false,
+  "blockers": [
+   "COCO-17 pose models do not output left_hand, right_hand; RetailAction take/put/touch features rely on them.",
+   "Supplied coordinates are quantised to a 1/64 grid with max 0.9375: heatmap-cell coordinates inside the 600x600 shopper crop, not full-frame pixels. Extracted poses need the same crop and normalisation before features can match.",
+   "Supplied joint scores exceed 1.0 (raw heatmap peaks); Keypoint R-CNN scores are unbounded logits. Confidence channels are not comparable without re-fitting.",
+   "Keypoint R-CNN costs 2080.8 ms per 600x600 frame on this CPU, above the 200 ms budget for 5 Hz analysis of one person."
+  ],
+  "required_before_enabling": [
+   "Choose a pose model with hand/wrist joints (e.g. a whole-body or 26-joint model) or retrain RetailAction on the COCO-17 subset plus derived neck/waist.",
+   "Re-express both supplied and extracted joints in person-box-normalised coordinates; use validity masks instead of raw confidences.",
+   "Run the chosen extractor on RetailAction's own videos and measure agreement with the supplied poses (PCK) before trusting transfer.",
+   "Retrain with the shared schema, then evaluate on held-out staged recordings from the target camera."
+  ]
+ }
+}

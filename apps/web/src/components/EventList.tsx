@@ -11,6 +11,7 @@ import {
 import { useBlobUrl } from '../lib/hooks'
 import { IconFilm, IconPlay } from './Icons'
 import { StatusPill } from './Common'
+import { ACTION_COLORS } from './Charts'
 
 function reviewTone(state: EventSummary['review_state']): 'review' | 'success' | 'muted' | 'teal' {
   if (state === 'unreviewed') return 'review'
@@ -70,9 +71,20 @@ export function EventRow({
           <span className="event-row__time">{formatTime(event.created_at)}</span>
         </div>
         <p className="event-row__activity">{eventTypeLabel(event.event_type)}</p>
-        <p className="event-row__reason">
-          {event.reasons.slice(0, 2).map(reasonLabel).join(' · ') || 'No reason codes recorded'}
-        </p>
+        {event.actions && event.actions.length > 0 ? (
+          <p className="event-row__reason chip-row">
+            {[...new Set(event.actions.map((a) => a.label))].map((label) => (
+              <span className="chip chip--action" key={label}>
+                <span className="chart-legend__swatch" style={{ background: ACTION_COLORS[label] }} aria-hidden="true" />
+                {reasonLabel(label)}
+              </span>
+            ))}
+          </p>
+        ) : (
+          <p className="event-row__reason">
+            {event.reasons.slice(0, 2).map(reasonLabel).join(' · ') || 'No reason codes recorded'}
+          </p>
+        )}
         <div className="event-row__meta">
           <span>Media {formatMediaTime(event.media_interval_ms.start)}–{formatMediaTime(event.media_interval_ms.end)}</span>
           <span>{formatDuration(duration)}</span>
@@ -81,6 +93,10 @@ export function EventRow({
           <StatusPill tone={reviewTone(event.review_state)} dot>
             {reviewStateLabel(event.review_state)}
           </StatusPill>
+          {event.event_type === 'shelf_interaction_observed' && <StatusPill tone="muted">Research model</StatusPill>}
+          {Array.isArray(event.quality?.warnings) && event.quality.warnings.includes('insufficient_person_visibility') && (
+            <StatusPill tone="review">Low visibility</StatusPill>
+          )}
           {event.evidence.status !== 'available' && (
             <StatusPill tone="muted">{event.evidence.status === 'pending' ? 'Evidence pending' : 'Evidence unavailable'}</StatusPill>
           )}

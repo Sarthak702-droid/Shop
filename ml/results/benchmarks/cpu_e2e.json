@@ -1,0 +1,30 @@
+{
+ "schema": "shop_cpu_benchmark_v1",
+ "profile": "merl_shelf_actions_research_v1",
+ "host": {
+  "cpu": "Intel(R) Core(TM) i7-1065G7 CPU @ 1.30GHz",
+  "logical_cores": 8,
+  "threads": 4,
+  "python": "3.12.3",
+  "torch": "2.10.0+cpu"
+ },
+ "model_load_ms": 225.3,
+ "videos": 3,
+ "media_seconds": 397.6,
+ "real_time_factor": {
+  "mean": 0.353,
+  "max": 0.383
+ },
+ "per_step_ms": {
+  "decode": 7.98,
+  "detect_and_backbone": 56.95,
+  "motion": 0.49,
+  "tcn": 0.023
+ },
+ "peak_rss_kb": 456440,
+ "budget": {
+  "step_ms_at_5hz": 200.0
+ },
+ "note": "Feature extraction (SSDLite on every step plus motion over every frame) dominates. TCN cost is negligible.",
+ "label": "actual_measured_result"
+}

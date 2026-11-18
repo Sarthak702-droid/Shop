@@ -1,0 +1,99 @@
+{
+ "schema": "shop_retailaction_status_v1",
+ "updated_utc": "2026-11-18T12:41:55.521991Z",
+ "classes": [
+  "take",
+  "put",
+  "touch"
+ ],
+ "steps": [
+  {
+   "key": "archive_upload",
+   "label": "Training archives on Drive with publisher SHA-256",
+   "state": "in_progress"
+  },
+  {
+   "key": "data_report",
+   "label": "Train/validation data quality report",
+   "state": "partial"
+  },
+  {
+   "key": "learning_pilot",
+   "label": "Colab T4 learning pilot (32 clips)",
+   "state": "pending"
+  },
+  {
+   "key": "full_training",
+   "label": "Full training, validation-only selection",
+   "state": "pending"
+  },
+  {
+   "key": "validation_analysis",
+   "label": "Per-class AP, precision/recall, error analysis",
+   "state": "pending"
+  },
+  {
+   "key": "final_test",
+   "label": "Frozen model evaluated once on test",
+   "state": "pending"
+  },
+  {
+   "key": "pose_compatibility",
+   "label": "Raw-video pose path matches training features",
+   "state": "failed"
+  }
+ ],
+ "archives": [
+  {
+   "name": "validation.tar",
+   "bytes": 1937612800,
+   "verified": true
+  },
+  {
+   "name": "test.tar",
+   "bytes": 3838385152,
+   "verified": true
+  },
+  {
+   "name": "train.tar",
+   "bytes": 26082080256,
+   "verified": false
+  }
+ ],
+ "transfer_state": "uploading_training",
+ "data": {
+  "train_source_clips": 17222,
+  "source_positive_clips": {
+   "take": 15248,
+   "put": 349,
+   "touch": 64
+  },
+  "usable_positive_clips": {
+   "take": 15219,
+   "put": 339,
+   "touch": 60
+  },
+  "quarantined_metadata": 29,
+  "no_valid_pose_excluded": 15
+ },
+ "class_imbalance_note": "touch has only ~60 usable positive training clips; its AP will be weak and have wide uncertainty.",
+ "pose_compatibility": {
+  "compatible": false,
+  "runtime_enabled": false,
+  "blockers": [
+   "COCO-17 pose models do not output left_hand, right_hand; RetailAction take/put/touch features rely on them.",
+   "Supplied coordinates are quantised to a 1/64 grid with max 0.9375: heatmap-cell coordinates inside the 600x600 shopper crop, not full-frame pixels. Extracted poses need the same crop and normalisation before features can match.",
+   "Supplied joint scores exceed 1.0 (raw heatmap peaks); Keypoint R-CNN scores are unbounded logits. Confidence channels are not comparable without re-fitting.",
+   "Keypoint R-CNN costs 2080.8 ms per 600x600 frame on this CPU, above the 200 ms budget for 5 Hz analysis of one person."
+  ],
+  "required_before_enabling": [
+   "Choose a pose model with hand/wrist joints (e.g. a whole-body or 26-joint model) or retrain RetailAction on the COCO-17 subset plus derived neck/waist.",
+   "Re-express both supplied and extracted joints in person-box-normalised coordinates; use validity masks instead of raw confidences.",
+   "Run the chosen extractor on RetailAction's own videos and measure agreement with the supplied poses (PCK) before trusting transfer.",
+   "Retrain with the shared schema, then evaluate on held-out staged recordings from the target camera."
+  ]
+ },
+ "runs_on_drive": [],
+ "runtime_enabled": false,
+ "next_action": "Wait for train.tar upload to finish, then run notebooks/Shop_RetailAction_T4.ipynb on a Colab T4 (pilot first)."
+}

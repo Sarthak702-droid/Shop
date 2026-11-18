@@ -129,3 +129,14 @@ The evaluation fixture DB now contains upload `3b0ed65b-7b33-46ad-bb8e-5c7ef7328
 ## Bottom line
 
 The baseline demonstrates a trustworthy local review loop: CPU inference, honest descriptive events, reviewable evidence, append-only human decisions, and safe failure states. It does **not** demonstrate shoplifting detection accuracy, commercial model rights, retail detection, pose, temporal inference, or production-grade privacy administration. Those remain gated and must not be described as delivered.
+
+## RetailAction T4 preparation — 18 November 2026
+
+A separate offline `take`/`put`/`touch` clip-presence experiment is prepared under
+`ml/retailaction/`, with `notebooks/Shop_RetailAction_T4.ipynb` and the workflow in
+`docs/retailaction-t4.md`. It is deliberately incompatible with MERL's 1,201-feature pipeline.
+Both source views stay in one example; missing/off-image pose observations and unknown time
+have masks; inconsistent metadata is quarantined with explicit quality gates. GPU training
+requires an allocated Colab T4 and all Drive archives verified. No GPU training or final test
+has been executed by this preparation, and no new runtime model has been enabled. Existing
+MERL checkpoints and CPU inference configuration are unchanged.

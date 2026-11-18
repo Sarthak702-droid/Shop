@@ -15,7 +15,9 @@ from shop_api.errors import ApiError, request_id
 from shop_api.schemas import JobCreateRequest
 from shop_api.security import resolve_operator
 from shop_api.service import (
+    ACTION_PROFILE,
     ANALYSIS_PROFILE,
+    ANALYSIS_PROFILES,
     AppContext,
     body_hash,
     disk_status,
@@ -71,12 +73,19 @@ def create_job(
             content=existing.response_json,
             headers={"Idempotency-Replayed": "true"},
         )
-    if payload.analysis_profile != ANALYSIS_PROFILE:
+    if payload.analysis_profile not in ANALYSIS_PROFILES:
         raise ApiError(
             422,
             "ANALYSIS_PROFILE_UNSUPPORTED",
             "The requested analysis profile is not registered on this host.",
-            details={"supported_profile": ANALYSIS_PROFILE},
+            details={"supported_profile": ANALYSIS_PROFILE, "supported_profiles": list(ANALYSIS_PROFILES)},
+        )
+    action_job = payload.analysis_profile == ACTION_PROFILE
+    if action_job and payload.source.kind != "file":
+        raise ApiError(
+            422,
+            "ANALYSIS_PROFILE_SOURCE_UNSUPPORTED",
+            "Shelf-action research analysis supports prerecorded file uploads only.",
         )
     if payload.sampling_fps > settings.analysis.sampling_fps:
         raise ApiError(
@@ -93,6 +102,8 @@ def create_job(
             details={"active_version": settings.zones.version},
         )
     context.require_person_model()
+    if action_job:
+        context.require_action_model()
     disk = disk_status(settings)
     if disk["below_minimum"]:
         raise ApiError(
@@ -134,7 +145,7 @@ def create_job(
         source_id = source.id
 
     job_id = new_id()
-    model_bundle = context.model_bundle()
+    model_bundle = context.action_bundle() if action_job else context.model_bundle()
     row = JobRow(
         id=job_id,
         kind=kind,
@@ -146,7 +157,7 @@ def create_job(
         privacy_mask_version=payload.privacy_mask_version,
         retain_evidence=payload.retain_evidence,
         model_bundle=model_bundle,
-        policy_version=settings.policy.version,
+        policy_version="merl_action_episodes_v1" if action_job else settings.policy.version,
         progress={
             "stage": "queued",
             "media_pts_ms": 0,
@@ -327,3 +338,25 @@ def cancel_job(
         )
     session.commit()
     return JSONResponse(status_code=status_code, content=payload)
+
+
+@router.get("/jobs/{job_id}/action-timeline")
+def job_action_timeline(job_id: UUID, context: AppContext = Depends(get_context), session: Session = Depends(get_session)) -> JSONResponse:
+    """Per-step shelf-action scores for a completed research job (served from local storage)."""
+    import json as _json
+
+    row = _job_or_404(session, job_id)
+    if row.analysis_profile != ACTION_PROFILE:
+        raise ApiError(404, "ACTION_TIMELINE_NOT_APPLICABLE", "This job did not run shelf-action analysis.")
+    info = ((row.coverage or {}).get("action_analysis") or {}).get("timeline") or {}
+    if row.state != "completed" or not info.get("path"):
+        raise ApiError(409, "ACTION_TIMELINE_NOT_READY", "The action timeline is available after the job completes.", retryable=True)
+    path = (context.settings.storage.root / "timelines" / f"{row.id}.json").resolve()
+    if not path.is_file() or context.settings.storage.root not in path.parents:
+        raise ApiError(410, "ACTION_TIMELINE_MISSING", "The stored action timeline is no longer available.")
+    data = path.read_bytes()
+    import hashlib as _hashlib
+
+    if info.get("sha256") and _hashlib.sha256(data).hexdigest() != info["sha256"]:
+        raise ApiError(500, "ACTION_TIMELINE_INTEGRITY", "The stored action timeline failed its integrity check.")
+    return JSONResponse(content={"job_id": row.id, "timeline": _json.loads(data)}, headers={"Cache-Control": "private, max-age=60"})

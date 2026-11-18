@@ -171,6 +171,7 @@ def event_public(row: EventRow, *, include_reviews: bool = False) -> dict[str, A
         "quality": row.quality or {},
         "required_evidence": row.required_evidence or [],
         "available_evidence": row.available_evidence or [],
+        "actions": row.actions or [],
         "evidence": {
             "status": row.evidence_status,
             "clip_id": row.evidence_id,

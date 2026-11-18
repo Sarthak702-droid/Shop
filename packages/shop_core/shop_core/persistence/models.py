@@ -158,6 +158,8 @@ class EventRow(Base):
     quality: Mapped[dict] = mapped_column(JSON, default=dict, nullable=False)
     required_evidence: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     available_evidence: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
+    # Research shelf-action segments inside this event (empty for person-activity events).
+    actions: Mapped[list] = mapped_column(JSON, default=list, nullable=False, server_default="[]")
     model_bundle: Mapped[str] = mapped_column(String(100), nullable=False)
     policy_version: Mapped[str] = mapped_column(String(100), nullable=False)
     schema_version: Mapped[str] = mapped_column(String(16), default="1.0", nullable=False)
@@ -236,6 +238,8 @@ class ReviewRow(Base):
     decision: Mapped[str] = mapped_column(String(24), nullable=False)
     reason_codes: Mapped[list] = mapped_column(JSON, default=list, nullable=False)
     notes: Mapped[str] = mapped_column(Text, default="", nullable=False)
+    # Reviewer judgement of predicted shelf actions: {"verdict", "observed_actions"}.
+    action_feedback: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     supersedes_review_id: Mapped[str | None] = mapped_column(
         ForeignKey("reviews.id"), nullable=True
     )

@@ -47,6 +47,26 @@ class JobCreateRequest(StrictRequest):
     retain_evidence: bool = True
 
 
+SHELF_ACTION_LABELS = Literal[
+    "reach_to_shelf", "retract_from_shelf", "hand_in_shelf", "inspect_product", "inspect_shelf"
+]
+
+
+class ActionFeedback(StrictRequest):
+    """Reviewer judgement of a research shelf-action prediction (feeds per-class precision)."""
+
+    verdict: Literal["correct", "partially_correct", "incorrect", "no_interaction", "unclear"]
+    observed_actions: list[SHELF_ACTION_LABELS] = Field(default_factory=list, max_length=5)
+
+    @model_validator(mode="after")
+    def _consistent(self) -> "ActionFeedback":
+        if len(set(self.observed_actions)) != len(self.observed_actions):
+            raise ValueError("observed_actions must not repeat a label")
+        if self.verdict == "no_interaction" and self.observed_actions:
+            raise ValueError("no_interaction cannot list observed actions")
+        return self
+
+
 class ReviewCreateRequest(StrictRequest):
     decision: Literal["benign", "review_needed", "inconclusive"]
     reason_codes: list[Literal[
@@ -60,6 +80,7 @@ class ReviewCreateRequest(StrictRequest):
     ]] = Field(default_factory=list, max_length=8)
     notes: str = Field(default="", max_length=2000)
     supersedes_review_id: UUID | None = None
+    action_feedback: ActionFeedback | None = None
 
     @model_validator(mode="after")
     def _reason_required(self) -> "ReviewCreateRequest":

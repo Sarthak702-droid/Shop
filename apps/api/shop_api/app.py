@@ -75,7 +75,7 @@ def create_app(
     app.add_middleware(RequestSizeMiddleware)
     app.add_middleware(RequestContextMiddleware)
 
-    from shop_api.routes import admin, events, jobs, sources, system, uploads
+    from shop_api.routes import admin, events, jobs, research, sources, system, uploads
 
     public = APIRouter(prefix="/api/v1")
     public.include_router(system.public_router)
@@ -88,6 +88,7 @@ def create_app(
     protected.include_router(jobs.router)
     protected.include_router(events.router)
     protected.include_router(admin.router)
+    protected.include_router(research.router)
     app.include_router(protected)
 
     dist = PROJECT_ROOT / "apps" / "web" / "dist"

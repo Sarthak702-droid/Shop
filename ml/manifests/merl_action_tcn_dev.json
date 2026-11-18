@@ -2,14 +2,19 @@
   "schema_version": "shop_model_manifest_v1",
   "bundle_id": "merl_action_tcn_v1",
   "run": "tcn-20261117T221342Z",
-  "status": "trained_research_not_enabled",
+  "status": "research_enabled",
   "role": "temporal_activity_model",
   "architecture": "shop_core.temporal.tcn.ActionTCN",
   "constructor": {
     "in_channels": 1201,
     "hidden": 64,
     "kernel_size": 3,
-    "dilations": [1, 2, 4, 8],
+    "dilations": [
+      1,
+      2,
+      4,
+      8
+    ],
     "dropout": 0.3,
     "temporal": true
   },
@@ -17,7 +22,13 @@
   "sample_rate_hz": 5,
   "feature_version": "merl_features_v1",
   "feature_note": "SSDLite backbone ROI (672) + global (480) + person geometry (11) + frame-difference motion (38). Not shop_features_v1: no pose.",
-  "class_order": ["reach_to_shelf", "retract_from_shelf", "hand_in_shelf", "inspect_product", "inspect_shelf"],
+  "class_order": [
+    "reach_to_shelf",
+    "retract_from_shelf",
+    "hand_in_shelf",
+    "inspect_product",
+    "inspect_shelf"
+  ],
   "thresholds": "per class, chosen on validation; stored inside model.pt",
   "weight_artifact": {
     "location": "Google Drive: ShopliftingAI-Data/checkpoints/merl_tcn_v1/tcn-20261117T221342Z/model.pt",
@@ -41,8 +52,28 @@
     "frame_map": 0.592,
     "chance_map": 0.154,
     "segment_map_iou_0_5": 0.289,
-    "baseline_no_context": {"run": "linear-20261117T222354Z", "frame_map": 0.450, "segment_map_iou_0_5": 0.124}
+    "baseline_no_context": {
+      "run": "linear-20261117T222354Z",
+      "frame_map": 0.45,
+      "segment_map_iou_0_5": 0.124
+    }
   },
   "calibration_version": null,
-  "notes": "Research model for observable shelf interactions on MERL's single overhead view. Not wired into the Shop runtime (configs/shop.yaml keeps the temporal module disabled). Outputs are uncalibrated action scores, never theft or intent scores. Does not cover hand_near_bag or item_visibility_lost."
+  "notes": "Research model for observable shelf interactions on MERL's single overhead view. Enabled only for the 'merl_shelf_actions_research_v1' analysis profile (research mode). Outputs are uncalibrated action scores, never theft or intent scores; review_score stays null. Does not cover hand_near_bag or item_visibility_lost.",
+  "version": "tcn-20261117T221342Z",
+  "weights": {
+    "path": "var/models/merl_tcn_v1/model.pt",
+    "sha256": "af66b3cb78f44bb0433c8b96509c51e52c2663dc4d7b243c9530c4d828faa003",
+    "bytes": 721641,
+    "source": "Google Drive: ShopliftingAI-Data/checkpoints/merl_tcn_v1/tcn-20261117T221342Z/model.pt",
+    "md5": "55374761409bc253eb92cb9bf2ccef8d"
+  },
+  "fetch_command": "scripts/models/fetch_merl_tcn.sh",
+  "runtime": {
+    "device": "cpu",
+    "torch_build": "2.10.0+cpu",
+    "torchvision_build": "0.25.0+cpu",
+    "requires_cuda": false
+  },
+  "runtime_profile": "merl_shelf_actions_research_v1"
 }

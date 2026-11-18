@@ -44,6 +44,7 @@ from shop_core.pipeline.runner import (
     run_webcam_analysis,
 )
 from shop_core.registry import ModelUnavailable
+from shop_core.actions.merl_runtime import PROFILE as ACTION_PROFILE
 from shop_core.sources.media import WebcamSource
 
 LOG_FORMAT = '{"time":"%(asctime)s","level":"%(levelname)s","service":"shop-worker","message":"%(message)s"}'
@@ -137,6 +138,7 @@ class DatabaseSink(PipelineSink):
                     quality=record.quality,
                     required_evidence=list(record.required_evidence),
                     available_evidence=list(record.available_evidence),
+                    actions=list(record.actions),
                     model_bundle=record.model_bundle,
                     policy_version=record.policy_version,
                     schema_version=record.schema_version,
@@ -277,7 +279,36 @@ def _file_source_for_upload(session, upload_id: str) -> str:
     return source.id
 
 
-def run_job(db: Database, settings: Settings, job_id: str, worker_id: str, detector: PersonDetector) -> None:
+class ActionModels:
+    """Lazily loaded research shelf-action stack (own detector copy + MERL TCN).
+
+    Loaded on the first action job so a missing research checkpoint never blocks baseline jobs.
+    The extractor lowers its detector's score floor, so it never shares the baseline detector.
+    """
+
+    def __init__(self, settings: Settings) -> None:
+        self.settings = settings
+        self._loaded = None
+
+    def get(self):  # noqa: ANN201
+        if self._loaded is None:
+            from shop_core.actions.merl_features import Extractor
+            from shop_core.actions.merl_runtime import ShelfActionModel
+
+            model = ShelfActionModel.load(self.settings)
+            extractor = Extractor.from_detector(PersonDetector.load(self.settings))
+            self._loaded = (extractor, model)
+        return self._loaded
+
+
+def run_job(
+    db: Database,
+    settings: Settings,
+    job_id: str,
+    worker_id: str,
+    detector: PersonDetector,
+    action_models: "ActionModels | None" = None,
+) -> None:
     with db.session() as session:
         job = session.get(JobRow, job_id)
         if job is None or job.state != "running":
@@ -290,6 +321,7 @@ def run_job(db: Database, settings: Settings, job_id: str, worker_id: str, detec
         job_kind = job.kind
         job_source_id = job.source_id
         upload_id = job.upload_id
+        analysis_profile = job.analysis_profile
 
     sink = DatabaseSink(
         db,
@@ -311,19 +343,41 @@ def run_job(db: Database, settings: Settings, job_id: str, worker_id: str, detec
                     raise ValueError("UPLOAD_UNAVAILABLE")
                 duration_ms = (upload.probe or {}).get("duration_ms")
                 source_id = _file_source_for_upload(session, upload_id)
-            result = run_file_analysis(
-                settings=settings,
-                detector=detector,
-                path=upload_path,
-                duration_ms=duration_ms,
-                job_id=job_id,
-                source_id=source_id,
-                session_id=session_id,
-                sink=sink,
-                evidence_writer=writer,
-                generate_evidence=persist_evidence,
-                sampling_fps=sampling_fps,
-            )
+            if analysis_profile == ACTION_PROFILE:
+                from shop_core.pipeline.actions import run_action_analysis
+
+                try:
+                    extractor, action_model = (action_models or ActionModels(settings)).get()
+                except ModelUnavailable as error:
+                    _finish_failed(db, job_id, error.code, f"Shelf-action research model unavailable: {error.message}")
+                    return
+                result = run_action_analysis(
+                    settings=settings,
+                    extractor=extractor,
+                    model=action_model,
+                    path=upload_path,
+                    duration_ms=duration_ms,
+                    job_id=job_id,
+                    source_id=source_id,
+                    session_id=session_id,
+                    sink=sink,
+                    evidence_writer=writer,
+                    generate_evidence=persist_evidence,
+                )
+            else:
+                result = run_file_analysis(
+                    settings=settings,
+                    detector=detector,
+                    path=upload_path,
+                    duration_ms=duration_ms,
+                    job_id=job_id,
+                    source_id=source_id,
+                    session_id=session_id,
+                    sink=sink,
+                    evidence_writer=writer,
+                    generate_evidence=persist_evidence,
+                    sampling_fps=sampling_fps,
+                )
         else:
             camera_key = source_info.get("camera_key")
             camera_config = settings.camera(str(camera_key)) if camera_key else None
@@ -492,6 +546,7 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 3
 
+    action_models = ActionModels(settings)
     write_worker_heartbeat(settings, {"worker_id": worker_id, "state": "idle", "job_id": None})
     with db.session() as session:
         recovered = recover_interrupted_jobs(session)
@@ -531,7 +586,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
         write_worker_heartbeat(settings, {"worker_id": worker_id, "state": "running", "job_id": claimed.id})
         logging.info("claimed job %s", claimed.id)
-        run_job(db, settings, claimed.id, worker_id, detector)
+        run_job(db, settings, claimed.id, worker_id, detector, action_models)
         write_worker_heartbeat(settings, {"worker_id": worker_id, "state": "idle", "job_id": None})
         if args.once or args.job_id:
             break

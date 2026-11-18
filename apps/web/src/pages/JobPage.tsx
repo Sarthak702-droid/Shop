@@ -24,6 +24,7 @@ import {
   StatusPill,
 } from '../components/Common'
 import { EventRow } from '../components/EventList'
+import { ActionAnalysisPanel } from '../components/ActionAnalysisPanel'
 import {
   IconAlert,
   IconCheck,
@@ -69,6 +70,9 @@ function stageLabel(stage: string | null): string {
   return {
     queued: 'Queued · waiting for worker',
     analysing: 'Analysing sampled frames',
+    extracting_features: 'Extracting shelf-action features',
+    temporal_inference: 'Running the temporal action model',
+    writing_evidence: 'Writing evidence clips',
     live: 'Capturing from approved camera',
     finished: 'Finishing local records',
   }[stage] ?? stage.replaceAll('_', ' ')
@@ -139,6 +143,7 @@ export function JobPage() {
   const evidence = stageTiming(metrics, 'evidence')
   const sourceLabel = job.source.label ?? (job.kind === 'file' ? 'Local upload' : 'Approved camera')
   const eventItems = events.data?.items ?? []
+  const actionJob = job.analysis_profile === 'merl_shelf_actions_research_v1'
 
   const requestCancel = async () => {
     setCancelling(true)
@@ -203,9 +208,10 @@ export function JobPage() {
         </InlineNotice>
       )}
       {job.status === 'completed' && job.events_count === 0 && (
-        <InlineNotice tone="neutral" title="Analysis completed with no activity segment">
-          The baseline did not find a confirmed person track meeting the descriptive policy. This does not prove that
-          no activity occurred; coverage and quality are reported below.
+        <InlineNotice tone="neutral" title={actionJob ? 'Analysis completed with no shelf interaction above threshold' : 'Analysis completed with no activity segment'}>
+          {actionJob
+            ? 'No action score stayed above its validation threshold long enough to publish an episode. This does not prove that no interaction occurred; check the score timeline and warnings below.'
+            : 'The baseline did not find a confirmed person track meeting the descriptive policy. This does not prove that no activity occurred; coverage and quality are reported below.'}
         </InlineNotice>
       )}
       {cancelMessage && job.status === 'cancelling' && (
@@ -245,9 +251,11 @@ export function JobPage() {
           <MetricCard label="Analysed samples" value={formatNumber(analysed)} detail={expected ? `of ${formatNumber(expected)} expected` : 'Expected count not reported'} icon={<IconFilm />} />
           <MetricCard label="Analysis coverage" value={covered !== null ? formatPercent(covered, 1) : '—'} detail="Sampled frames with a valid analysis result." tone="teal" icon={<IconCheck />} />
           <MetricCard label="Dropped frames" value={formatNumber(numberValue(progress, 'dropped_frames') ?? 0)} detail="Scheduler or decode drops recorded by the source adapter." icon={<IconClock />} />
-          <MetricCard label="Activity segments" value={formatNumber(job.events_count ?? 0)} detail="Descriptive events created by the baseline policy." tone="teal" icon={<IconCpu />} />
+          <MetricCard label={actionJob ? 'Interaction episodes' : 'Activity segments'} value={formatNumber(job.events_count ?? 0)} detail={actionJob ? 'Shelf-interaction events for human review.' : 'Descriptive events created by the baseline policy.'} tone="teal" icon={<IconCpu />} />
         </div>
       </section>
+
+      {actionJob && <ActionAnalysisPanel job={job} events={eventItems} />}
 
       <div className="job-grid">
         <section className="panel">
@@ -364,8 +372,8 @@ export function JobPage() {
 
       <section className="panel">
         <SectionHeading
-          title="Activity segments from this job"
-          detail="Only descriptive segments; each links to evidence and a human review outcome."
+          title={actionJob ? 'Interaction episodes from this job' : 'Activity segments from this job'}
+          detail={actionJob ? 'Each episode links to its evidence clip, predicted actions and a human review form.' : 'Only descriptive segments; each links to evidence and a human review outcome.'}
           action={
             (job.events_count ?? 0) > 0 ? (
               <Link to={`/review`} className="text-link">Open review queue</Link>

@@ -126,7 +126,16 @@ def test_capabilities_describe_limits_and_disabled_modules(client, settings) -> 
     assert payload["models"]["person"]["commercial_status"] == "development_only"
     assert payload["models"]["retail"]["available"] is False
     assert payload["models"]["pose"]["available"] is False
-    assert payload["models"]["temporal"]["available"] is False
+    # Research shelf-action TCN: enabled in research mode, available only when its hash-verified
+    # checkpoint is installed (scripts/models/fetch_merl_tcn.sh), and always development_only.
+    temporal = payload["models"]["temporal"]
+    assert temporal["enabled"] is True
+    assert temporal["commercial_status"] == "development_only"
+    checkpoint = settings.resolve_path("var/models/merl_tcn_v1/model.pt")
+    assert temporal["available"] is checkpoint.is_file()
+    profiles = {item["profile"]: item for item in payload["limits"]["analysis_profiles"]}
+    assert profiles["merl_shelf_actions_research_v1"]["research_mode"] is True
+    assert profiles["merl_shelf_actions_research_v1"]["sources"] == ["file"]
     assert payload["models"]["policy"]["no_activity_score_available"] is True
     assert payload["models"]["policy"]["score_semantics"] is None
     assert payload["features"]["automatic_enforcement"] is False

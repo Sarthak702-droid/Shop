@@ -91,6 +91,7 @@ def list_events(
     review_state: str | None = None,
     reviewed: bool | None = None,
     job_id: UUID | None = None,
+    event_type: str | None = None,
     include_deleted: bool = False,
     session: Session = Depends(get_session),
 ) -> dict:
@@ -109,6 +110,10 @@ def list_events(
         query = query.where(EventRow.review_state == "unreviewed")
     if job_id is not None:
         query = query.where(EventRow.job_id == str(job_id))
+    if event_type is not None:
+        if event_type not in ("person_activity_observed", "shelf_interaction_observed"):
+            raise ApiError(422, "EVENT_TYPE_INVALID", "The requested event type is not recognised.")
+        query = query.where(EventRow.event_type == event_type)
     if cursor:
         try:
             created_at, cursor_id = decode_cursor(cursor)
@@ -209,9 +214,16 @@ def create_review(
                 "SUPERSEDES_REVIEW_INVALID",
                 "A superseding review must reference an existing review of the same event.",
             )
+    if payload.action_feedback is not None and event.event_type != "shelf_interaction_observed":
+        raise ApiError(
+            422,
+            "ACTION_FEEDBACK_NOT_APPLICABLE",
+            "Action feedback can only be recorded for shelf-interaction events.",
+        )
     review = ReviewRow(
         id=new_id(),
         event_id=event.id,
+        action_feedback=payload.action_feedback.model_dump(mode="json") if payload.action_feedback else None,
         actor=actor,
         decision=payload.decision,
         reason_codes=list(payload.reason_codes),
@@ -233,6 +245,7 @@ def create_review(
                 "decision": payload.decision,
                 "reason_codes": list(payload.reason_codes),
                 "supersedes_review_id": review.supersedes_review_id,
+                "action_verdict": payload.action_feedback.verdict if payload.action_feedback else None,
             },
         )
     )
